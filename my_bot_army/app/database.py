@@ -36,10 +36,28 @@ async def get_db():
             await session.close()
 
 
+async def create_vector_index():
+    """Create index for vector similarity search"""
+    async with engine.begin() as conn:
+        # Create index for fast vector similarity search
+        await conn.execute(text("""
+            CREATE INDEX IF NOT EXISTS documents_embedding_idx
+            ON documents
+            USING ivfflat (embedding vector_cosine_ops)
+            WITH (lists = 100);
+        """))
+
+
 # Initialize database (create tables, enable pgvector)
 async def init_db():
+    # Import all models so they're registered with Base (inside function to avoid circular imports)
+    from app.schemas import Client, Bot, Conversation, Message, Usage, Document
+
     async with engine.begin() as conn:
         # Enable pgvector extension
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         # Create all tables
         await conn.run_sync(Base.metadata.create_all)
+
+    # Create vector index (after tables exist)
+    await create_vector_index()
