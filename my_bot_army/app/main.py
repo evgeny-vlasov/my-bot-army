@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from contextlib import asynccontextmanager
@@ -7,6 +8,12 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.database import get_db, init_db
 from app import schemas  # Import schemas to register models
+from app.api import api_router
+from app.core.exceptions import (
+    validation_exception_handler,
+    http_exception_handler,
+    general_exception_handler
+)
 
 
 @asynccontextmanager
@@ -31,6 +38,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Exception handlers
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
+
+# API routes
+app.include_router(api_router, prefix="/api/v1")
 
 
 # Health check endpoint
