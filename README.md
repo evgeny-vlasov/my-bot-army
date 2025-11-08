@@ -4,7 +4,9 @@ A scalable multi-bot platform for deploying custom AI assistants powered by Clau
 
 ## Overview
 
-My Bot Army is designed to host multiple AI chatbot instances, each serving different clients or purposes. The first bot in the army is for **Keystone Hardscapes**, a landscaping contractor in Alberta, Canada.
+My Bot Army is a production-ready platform for hosting multiple AI chatbot instances, each serving different clients or purposes. The platform includes comprehensive database integration with PostgreSQL for conversation history, usage analytics, and cost tracking, plus a full-featured admin dashboard for managing your bot army.
+
+The first bot in the army is for **Keystone Hardscapes**, a landscaping contractor in Alberta, Canada.
 
 ## Architecture
 
@@ -12,17 +14,23 @@ My Bot Army is designed to host multiple AI chatbot instances, each serving diff
 /opt/bot-farm/
 ├── shared/                      # Shared utilities across all bots
 │   ├── claude_client.py        # Reusable Claude API wrapper
+│   ├── database.py             # PostgreSQL database module
 │   ├── widget/                 # Embeddable chat widget
 │   │   ├── bot-widget.js      # JavaScript widget for client websites
 │   │   └── bot-widget.css     # Widget styling
 │   └── __init__.py
 ├── bots/                       # Individual bot instances
 │   ├── keystone-landscaping/   # First bot - landscaping assistant
-│   │   ├── app.py             # Flask application
+│   │   ├── app.py             # Flask application (with DB integration)
 │   │   ├── config.py          # Bot-specific configuration
 │   │   ├── prompts.py         # System prompts and personality
 │   │   └── requirements.txt   # Python dependencies
 │   └── [future-bots]/         # Additional bots go here
+├── admin/                      # Admin dashboard
+│   ├── app.py                 # Flask admin application
+│   ├── templates/             # Dashboard HTML templates
+│   ├── static/                # CSS and JavaScript
+│   └── requirements.txt       # Admin dependencies
 ├── nginx/                      # Reverse proxy configs (optional)
 ├── .env                        # API keys and secrets (NOT in git)
 └── venv/                       # Python virtual environment
@@ -31,41 +39,54 @@ My Bot Army is designed to host multiple AI chatbot instances, each serving diff
 ## Tech Stack
 
 - **Backend**: Python 3.11 + Flask
+- **Database**: PostgreSQL 15+ (for conversation history and analytics)
 - **AI**: Anthropic Claude API (Sonnet 4.5)
 - **Frontend Widget**: Vanilla JavaScript
+- **Admin Dashboard**: Flask + Bootstrap 5 + Chart.js
 - **Server**: Debian 12
 - **Process Manager**: systemd (for production)
 - **Reverse Proxy**: nginx (optional, for multiple bots)
 
 ## Features
 
-### Current (v1.0 - Proof of Concept)
+### Current (v2.0 - Production Ready)
 - ✅ Single bot deployment (Keystone Hardscapes)
 - ✅ RESTful API endpoint for chat
 - ✅ Embeddable JavaScript widget
 - ✅ Conversation context management
 - ✅ Custom system prompts per bot
 - ✅ CORS support for cross-origin requests
+- ✅ **PostgreSQL database integration**
+- ✅ **Conversation history storage**
+- ✅ **API usage tracking and cost analytics**
+- ✅ **Comprehensive admin dashboard**
+  - Client management and subscription tracking
+  - Bot control (start/stop via systemctl)
+  - Usage analytics with charts
+  - Conversation logs viewer
+  - Real-time metrics and statistics
+- ✅ **Database logging in all bots**
 
 ### Planned (Future)
 - 🔄 Multi-bot routing via nginx
-- 🔄 Bot dashboard for management
-- 🔄 Usage analytics per bot
+- 🔄 User authentication for admin dashboard
 - 🔄 Rate limiting per client
-- 🔄 Database for conversation history
 - 🔄 Webhook support for integrations
+- 🔄 Email alerts and notifications
+- 🔄 Advanced predictive analytics
 
 ## Quick Start
 
 ### Prerequisites
 - Debian 12 server (or Ubuntu/similar)
 - Python 3.11+
+- PostgreSQL 15+ (for database features)
 - Anthropic API key
 - Static IP or domain (for production)
 
 ### Installation
 
-See [SETUP.md](./SETUP.md) for detailed server setup instructions.
+See [SETUP.md](./SETUP.md) for detailed server setup instructions including PostgreSQL database configuration.
 
 Quick version:
 ```bash
@@ -79,10 +100,16 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r bots/keystone-landscaping/requirements.txt
+pip install -r admin/requirements.txt
 
 # Configure environment
 cp .env.example .env
-nano .env  # Add your ANTHROPIC_API_KEY
+nano .env  # Add your ANTHROPIC_API_KEY and DB_PASSWORD
+
+# Set up PostgreSQL database (see SETUP.md for details)
+# - Install PostgreSQL
+# - Create database and user
+# - Run database schema
 
 # Run the bot
 cd bots/keystone-landscaping
@@ -90,6 +117,7 @@ python app.py
 ```
 
 Bot will be available at: `http://your-server-ip:5000`
+Admin dashboard at: `http://your-server-ip:5001/admin`
 
 ## Embedding the Chat Widget
 
@@ -107,6 +135,59 @@ To add the chatbot to any website, add this snippet before `</body>`:
     title: 'Chat with Keystone'
   });
 </script>
+```
+
+## Admin Dashboard
+
+The platform includes a comprehensive web-based admin dashboard for managing your bot army.
+
+### Features
+- **Dashboard**: Overview with real-time statistics and metrics
+- **Client Management**: Track clients, subscriptions, and MRR
+- **Bot Control**: Start/stop bots via systemctl integration
+- **Usage Analytics**: API usage, costs, and token consumption with charts
+- **Conversation Logs**: View and search all conversations
+- **Responsive Design**: Mobile-friendly interface
+
+### Running the Dashboard
+
+```bash
+cd /opt/bot-farm
+python admin/app.py
+```
+
+Access at: `http://your-server-ip:5001/admin`
+
+**Note**: The admin dashboard requires database features to be enabled. See [admin/README.md](./admin/README.md) for detailed setup and security considerations.
+
+## Database Features
+
+The platform uses PostgreSQL for persistent storage of:
+- Client information and subscriptions
+- Bot configurations and status
+- Conversation history with full message logs
+- API usage tracking and cost analytics
+- Session management
+
+### Setup
+
+See [SETUP.md](./SETUP.md) for complete database installation and configuration instructions.
+
+### Database Module
+
+All database operations are centralized in `shared/database.py`:
+
+```python
+from shared.database import get_bot_by_id, log_api_usage, create_conversation
+
+# Get bot information
+bot = get_bot_by_id('keystone-landscaping')
+
+# Log API usage
+log_api_usage('keystone-landscaping', input_tokens=1000, output_tokens=500, cost=0.015)
+
+# Create conversation
+conversation_id = create_conversation('keystone-landscaping', 'session-123')
 ```
 
 ## Adding New Bots
