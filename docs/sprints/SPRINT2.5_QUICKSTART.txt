@@ -1,0 +1,186 @@
+╔══════════════════════════════════════════════════════════════════╗
+║           SPRINT 2.5: DATABASE SETUP - QUICK START               ║
+╚══════════════════════════════════════════════════════════════════╝
+
+✅ INFRASTRUCTURE COMPLETE!
+Your PostgreSQL database is set up and ready.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 WHAT YOU HAVE NOW:
+
+✓ PostgreSQL 15 installed on Debian server
+✓ Database 'botfarm' with 8 tables
+✓ Schema loaded (clients, bots, subscriptions, etc.)
+✓ Initial data (Andrew/Keystone bot)
+✓ Python libraries installed (psycopg2)
+✓ Environment configured (.env with DB_PASSWORD)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 NEXT STEPS (Using Claude Code):
+
+┌─────────────────────────────────────────────────────────────────┐
+│ TASK 1: Database Module (30-45 min)                            │
+├─────────────────────────────────────────────────────────────────┤
+│ File: SPRINT2.5_TASK1_integration.md                           │
+│                                                                 │
+│ What it does:                                                   │
+│ • Creates shared/database.py module                            │
+│ • Helper functions for all database operations                 │
+│ • Client, bot, subscription management                         │
+│ • API usage tracking                                           │
+│                                                                 │
+│ How to use:                                                     │
+│ 1. Open Claude Code                                            │
+│ 2. Share your my-bot-army repository                           │
+│ 3. Paste the entire SPRINT2.5_TASK1_integration.md            │
+│ 4. Let Claude Code build it                                    │
+│ 5. Review and test                                             │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ TASK 2: Bot Integration (45-60 min)                            │
+├─────────────────────────────────────────────────────────────────┤
+│ File: SPRINT2.5_TASK2_bot_integration.md                       │
+│                                                                 │
+│ What it does:                                                   │
+│ • Updates existing bots to log conversations                   │
+│ • Tracks API usage automatically                               │
+│ • Stores messages in database                                  │
+│ • Updates widget to send session IDs                           │
+│                                                                 │
+│ How to use:                                                     │
+│ 1. After Task 1 is complete and tested                         │
+│ 2. Give Claude Code this prompt                                │
+│ 3. It will update existing files                               │
+│ 4. Test with chat messages                                     │
+│ 5. Verify database has data                                    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ TASK 3: Admin Dashboard (2-3 hours)                            │
+├─────────────────────────────────────────────────────────────────┤
+│ File: SPRINT2.5_TASK3_admin_dashboard.md                       │
+│                                                                 │
+│ What it does:                                                   │
+│ • Creates complete admin web interface                         │
+│ • View clients, bots, usage, conversations                     │
+│ • Start/stop bots from UI                                      │
+│ • Generate reports and analytics                               │
+│ • Professional dashboard on port 5001                          │
+│                                                                 │
+│ How to use:                                                     │
+│ 1. After Tasks 1 & 2 are complete                              │
+│ 2. Give Claude Code this prompt                                │
+│ 3. It will create admin/ folder with Flask app                 │
+│ 4. Run: python admin/app.py                                    │
+│ 5. Access: http://your-server:5001/admin                       │
+└─────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📂 DOCUMENTATION FILES:
+
+• SPRINT2.5_SUMMARY.md              - Overview (READ THIS FIRST!)
+• SPRINT2.5_DATABASE_SETUP.md       - What we just did
+• SPRINT2.5_TASK1_integration.md    - For Claude Code
+• SPRINT2.5_TASK2_bot_integration.md - For Claude Code
+• SPRINT2.5_TASK3_admin_dashboard.md - For Claude Code
+• SPRINT2.5_QUICKSTART.txt          - This file
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏱️  TIME INVESTMENT:
+
+Infrastructure (Done):        1 hour     ✅
+Task 1 (Database Module):    45 min     ⏳
+Task 2 (Bot Integration):    1 hour     ⏳
+Task 3 (Admin Dashboard):    2-3 hours  ⏳
+Testing & Polish:            30 min     ⏳
+────────────────────────────────────────
+TOTAL:                       5-6 hours
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 TESTING AFTER EACH TASK:
+
+After Task 1:
+  cd /opt/bot-farm
+  source venv/bin/activate
+  python shared/database.py
+  # Should show: ✓ Connected! Found bot...
+
+After Task 2:
+  # Send test chat message
+  curl -X POST http://localhost:5000/api/chat \
+    -H "Content-Type: application/json" \
+    -d '{"message": "test", "session_id": "test123"}'
+  
+  # Check database
+  psql -U botfarm -d botfarm -h localhost
+  SELECT * FROM conversations;
+  SELECT * FROM messages;
+
+After Task 3:
+  python admin/app.py
+  # Open browser: http://your-server:5001/admin
+  # Check all pages load
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 TIPS:
+
+1. Do tasks in order (1 → 2 → 3)
+2. Test after each task
+3. Commit to git after each task
+4. Take breaks between tasks
+5. Read the full prompt before giving to Claude Code
+6. Review generated code before deploying
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 SUCCESS CRITERIA:
+
+After completing all tasks, you should have:
+
+✓ shared/database.py with helper functions
+✓ Bots logging conversations to database
+✓ API usage being tracked
+✓ Admin dashboard running on port 5001
+✓ Can view clients, bots, and usage in UI
+✓ Can control bots from dashboard
+✓ Complete data pipeline working
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 WHEN COMPLETE:
+
+You'll have a professional bot platform with:
+• Full database persistence
+• Client and subscription management
+• Usage tracking for billing
+• Admin dashboard for control
+• Foundation for scaling to 100+ bots
+
+Ready for: Sprint 3 (RAG), Sprint 4 (Capabilities), Sprint 5 (Billing)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📞 NEED HELP?
+
+• Check SPRINT2.5_DATABASE_SETUP.md troubleshooting section
+• Test each component independently
+• Review error messages carefully
+• Ask Claude for debugging specific issues
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 YOU'RE READY TO BUILD!
+
+Your database is set up. Now use Claude Code with the three task
+prompts to complete the integration. Total time: 4-5 hours.
+
+Let's build your Bot Army! 🤖⚔️🤖
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
