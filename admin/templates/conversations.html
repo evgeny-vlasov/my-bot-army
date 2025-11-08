@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Conversations - Bot Army Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-comments"></i> Conversation Logs</h1>
+    <p class="subtitle">View all conversation sessions</p>
+</div>
+
+<!-- Filters -->
+<div class="dashboard-card">
+    <div class="card-body">
+        <div class="filter-bar">
+            <label for="bot_filter">Filter by Bot:</label>
+            <select id="bot_filter" onchange="filterByBot(this.value)">
+                <option value="">All Bots</option>
+                {% for bot in bots %}
+                <option value="{{ bot.bot_id }}" {% if selected_bot == bot.bot_id %}selected{% endif %}>
+                    {{ bot.bot_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Conversations List -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> Recent Conversations ({{ conversations|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if conversations %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>Bot Name</th>
+                        <th>Messages</th>
+                        <th>Started</th>
+                        <th>Ended</th>
+                        <th>Duration</th>
+                        <th>User IP</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conversation in conversations %}
+                    <tr>
+                        <td><code>{{ conversation.session_id[:16] }}...</code></td>
+                        <td>{{ conversation.bot_name }}</td>
+                        <td>
+                            <span class="badge badge-info">{{ conversation.message_count }} msgs</span>
+                        </td>
+                        <td>{{ conversation.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if conversation.ended_at %}
+                            {{ conversation.ended_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            {% else %}
+                            <span class="status-badge status-active">Active</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if conversation.ended_at %}
+                            {% set duration = (conversation.ended_at - conversation.started_at).total_seconds() %}
+                            {% if duration < 60 %}
+                            {{ "%.0f"|format(duration) }}s
+                            {% elif duration < 3600 %}
+                            {{ "%.1f"|format(duration / 60) }}m
+                            {% else %}
+                            {{ "%.1f"|format(duration / 3600) }}h
+                            {% endif %}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ conversation.user_ip or '-' }}</td>
+                        <td>
+                            <a href="/admin/conversation/{{ conversation.id }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No conversations found</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fas fa-comments"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ conversations|length }}</div>
+            <div class="stat-label">Total Conversations</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #10b981;">
+            <i class="fas fa-message"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ conversations|sum(attribute='message_count') or 0 }}</div>
+            <div class="stat-label">Total Messages</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #8b5cf6;">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">
+                {% if conversations|length > 0 %}
+                {{ "%.1f"|format((conversations|sum(attribute='message_count') or 0) / conversations|length) }}
+                {% else %}
+                0
+                {% endif %}
+            </div>
+            <div class="stat-label">Avg Messages/Conv</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">
+                {% set active_count = conversations|rejectattr('ended_at')|list|length %}
+                {{ active_count }}
+            </div>
+            <div class="stat-label">Active Now</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterByBot(botId) {
+    if (botId) {
+        window.location.href = '/admin/conversations?bot_id=' + botId;
+    } else {
+        window.location.href = '/admin/conversations';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation Detail - Bot Army Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+            <h1><i class="fas fa-comment-dots"></i> Conversation Detail</h1>
+            {% if conversation %}
+            <p class="subtitle">Session: {{ conversation.session_id }}</p>
+            {% endif %}
+        </div>
+        <a href="/admin/conversations" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+{% if conversation %}
+<!-- Conversation Info -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-info-circle"></i> Conversation Information</h2>
+    </div>
+    <div class="card-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Bot Name:</span>
+                <span class="info-value">{{ conversation.bot_name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Session ID:</span>
+                <span class="info-value"><code>{{ conversation.session_id }}</code></span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Started:</span>
+                <span class="info-value">{{ conversation.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Ended:</span>
+                <span class="info-value">
+                    {% if conversation.ended_at %}
+                    {{ conversation.ended_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                    {% else %}
+                    <span class="status-badge status-active">Active</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total Messages:</span>
+                <span class="info-value">{{ conversation.message_count }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">User IP:</span>
+                <span class="info-value">{{ conversation.user_ip or '-' }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Messages -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-comments"></i> Messages ({{ messages|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="message-bubble {% if message.role == 'user' %}message-user{% else %}message-assistant{% endif %}">
+                <div class="message-header">
+                    <span class="message-role">
+                        {% if message.role == 'user' %}
+                        <i class="fas fa-user"></i> User
+                        {% elif message.role == 'assistant' %}
+                        <i class="fas fa-robot"></i> Assistant
+                        {% else %}
+                        <i class="fas fa-cog"></i> System
+                        {% endif %}
+                    </span>
+                    <span class="message-time">{{ message.created_at.strftime('%H:%M:%S') }}</span>
+                    {% if message.tokens_used %}
+                    <span class="message-tokens">{{ message.tokens_used }} tokens</span>
+                    {% endif %}
+                </div>
+                <div class="message-content">
+                    {{ message.content }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No messages in this conversation</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Token Usage -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-bar"></i> Token Usage</h2>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid">
+            <div class="usage-stat">
+                <span class="usage-label">Total Tokens:</span>
+                <span class="usage-value">{{ messages|sum(attribute='tokens_used') or 0 }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">User Messages:</span>
+                <span class="usage-value">{{ messages|selectattr('role', 'equalto', 'user')|list|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Assistant Messages:</span>
+                <span class="usage-value">{{ messages|selectattr('role', 'equalto', 'assistant')|list|length }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="dashboard-card">
+    <div class="card-body">
+        <p class="no-data">Conversation not found</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

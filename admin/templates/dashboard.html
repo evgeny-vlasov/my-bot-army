@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Bot Army Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-home"></i> Dashboard</h1>
+    <p class="subtitle">Overview of your Bot Army platform</p>
+</div>
+
+<!-- Summary Cards -->
+<div class="stats-grid">
+    <!-- Total Clients -->
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_clients }}</div>
+            <div class="stat-label">Total Clients</div>
+        </div>
+    </div>
+
+    <!-- Total Bots -->
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #8b5cf6;">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ total_bots }}</div>
+            <div class="stat-label">Total Bots</div>
+        </div>
+    </div>
+
+    <!-- Active Bots -->
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #10b981;">
+            <i class="fas fa-circle-check"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ active_bots }}</div>
+            <div class="stat-label">Active Bots</div>
+        </div>
+    </div>
+
+    <!-- Overdue Subscriptions -->
+    <div class="stat-card">
+        <div class="stat-icon" style="background: {% if overdue_count > 0 %}#ef4444{% else %}#10b981{% endif %};">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ overdue_count }}</div>
+            <div class="stat-label">Overdue</div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage Statistics -->
+<div class="section-grid">
+    <!-- Today's Activity -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2><i class="fas fa-calendar-day"></i> Today's Activity</h2>
+        </div>
+        <div class="card-body">
+            <div class="usage-stat">
+                <span class="usage-label">Requests:</span>
+                <span class="usage-value">{{ today_usage.total_requests or 0 }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Cost:</span>
+                <span class="usage-value">${{ "%.4f"|format(today_usage.total_cost or 0) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month to Date -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2><i class="fas fa-calendar-alt"></i> Month to Date</h2>
+        </div>
+        <div class="card-body">
+            <div class="usage-stat">
+                <span class="usage-label">Requests:</span>
+                <span class="usage-value">{{ month_usage.total_requests or 0 }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Cost:</span>
+                <span class="usage-value">${{ "%.4f"|format(month_usage.total_cost or 0) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-clock"></i> Recent Conversations</h2>
+    </div>
+    <div class="card-body">
+        {% if recent_conversations %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Session ID</th>
+                        <th>Bot Name</th>
+                        <th>Messages</th>
+                        <th>Started At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conversation in recent_conversations %}
+                    <tr>
+                        <td><code>{{ conversation.session_id[:16] }}...</code></td>
+                        <td>{{ conversation.bot_name }}</td>
+                        <td>{{ conversation.message_count }}</td>
+                        <td>{{ conversation.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No recent conversations</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+    </div>
+    <div class="card-body">
+        <div class="action-buttons">
+            <a href="/admin/clients" class="btn btn-primary">
+                <i class="fas fa-users"></i> Manage Clients
+            </a>
+            <a href="/admin/bots" class="btn btn-primary">
+                <i class="fas fa-robot"></i> Manage Bots
+            </a>
+            <a href="/admin/usage" class="btn btn-primary">
+                <i class="fas fa-chart-line"></i> View Usage
+            </a>
+            <a href="/admin/conversations" class="btn btn-primary">
+                <i class="fas fa-comments"></i> View Conversations
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
