@@ -17,20 +17,47 @@ from shared.claude_client import ClaudeClient
 from config import Config
 from prompts import SYSTEM_PROMPT
 
+# Import database functions for conversation logging
+try:
+    from shared.database import (
+        get_bot_by_id,
+        create_conversation,
+        save_message,
+        get_conversation_history,
+        execute_query
+    )
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠ Warning: Database module not available: {e}")
+    DATABASE_AVAILABLE = False
+
 # Initialize Flask app
 app = Flask(__name__)
 
 # Enable CORS for cross-origin requests
 CORS(app, origins=Config.CORS_ORIGINS)
 
-# Initialize Claude client
+# Initialize Claude client with bot_id for usage tracking
 try:
-    claude_client = ClaudeClient()
+    claude_client = ClaudeClient(bot_id=Config.BOT_ID)
     print(f"✓ Claude client initialized successfully")
 except Exception as e:
     print(f"✗ Failed to initialize Claude client: {e}")
     print(f"  Please check your .env file and ANTHROPIC_API_KEY")
     sys.exit(1)
+
+# Verify bot exists in database on startup
+if DATABASE_AVAILABLE:
+    try:
+        bot_info = get_bot_by_id(Config.BOT_ID)
+        if bot_info:
+            print(f"✓ Bot '{bot_info['bot_name']}' connected to database")
+        else:
+            print(f"⚠ Warning: Bot '{Config.BOT_ID}' not found in database")
+    except Exception as e:
+        print(f"⚠ Warning: Could not verify bot in database: {e}")
+else:
+    print(f"⚠ Database logging disabled - bot will run without persistence")
 
 
 @app.route('/', methods=['GET'])
@@ -87,11 +114,13 @@ def serve_widget():
 def chat():
     """
     Main chat endpoint - processes user messages and returns bot responses
+    with database logging for conversations and messages
 
     Request body:
         {
             "message": str,
-            "conversation_history": list (optional)
+            "conversation_history": list (optional),
+            "session_id": str (optional)
         }
 
     Response:
@@ -131,8 +160,9 @@ def chat():
                 'status': 'error'
             }), 400
 
-        # Get conversation history
+        # Get conversation history and session_id
         conversation_history = data.get('conversation_history', [])
+        session_id = data.get('session_id')
 
         # Validate conversation history format
         if not isinstance(conversation_history, list):
@@ -165,6 +195,22 @@ def chat():
         if len(conversation_history) > Config.MAX_CONVERSATION_HISTORY:
             conversation_history = conversation_history[-Config.MAX_CONVERSATION_HISTORY:]
 
+        # Get or create conversation in database
+        conversation_id = None
+        if session_id and DATABASE_AVAILABLE:
+            try:
+                user_ip = request.remote_addr
+                conversation_id = create_conversation(Config.BOT_ID, session_id, user_ip)
+            except Exception as db_error:
+                print(f"Warning: Could not create conversation: {db_error}")
+
+        # Save user message to database
+        if conversation_id and DATABASE_AVAILABLE:
+            try:
+                save_message(conversation_id, 'user', message)
+            except Exception as db_error:
+                print(f"Warning: Could not save user message: {db_error}")
+
         # Call Claude API
         try:
             response = claude_client.chat(
@@ -172,6 +218,13 @@ def chat():
                 system_prompt=SYSTEM_PROMPT,
                 conversation_history=conversation_history
             )
+
+            # Save assistant response to database
+            if conversation_id and DATABASE_AVAILABLE:
+                try:
+                    save_message(conversation_id, 'assistant', response)
+                except Exception as db_error:
+                    print(f"Warning: Could not save assistant message: {db_error}")
 
             return jsonify({
                 'response': response,
@@ -189,6 +242,71 @@ def chat():
         print(f"Unexpected error in /api/chat: {e}")
         return jsonify({
             'error': 'An unexpected error occurred',
+            'status': 'error'
+        }), 500
+
+
+@app.route('/admin/stats', methods=['GET'])
+def admin_stats():
+    """
+    Get bot statistics for admin dashboard
+
+    Note: In production, this should require authentication!
+
+    Response:
+        {
+            "bot_id": str,
+            "today_usage": dict,
+            "total_conversations": int,
+            "total_messages": int,
+            "status": "success"
+        }
+    """
+    if not DATABASE_AVAILABLE:
+        return jsonify({
+            'error': 'Database not available',
+            'status': 'error'
+        }), 503
+
+    try:
+        # Get today's usage
+        today_usage = execute_query("""
+            SELECT
+                requests,
+                input_tokens,
+                output_tokens,
+                cost
+            FROM api_usage
+            WHERE bot_id = %s AND date = CURRENT_DATE
+        """, (Config.BOT_ID,))
+
+        # Get total conversations
+        total_conversations = execute_query("""
+            SELECT COUNT(*) as count
+            FROM conversations
+            WHERE bot_id = %s
+        """, (Config.BOT_ID,))
+
+        # Get total messages
+        total_messages = execute_query("""
+            SELECT COUNT(*) as count
+            FROM messages m
+            JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.bot_id = %s
+        """, (Config.BOT_ID,))
+
+        return jsonify({
+            'bot_id': Config.BOT_ID,
+            'today_usage': today_usage[0] if today_usage else None,
+            'total_conversations': total_conversations[0]['count'] if total_conversations else 0,
+            'total_messages': total_messages[0]['count'] if total_messages else 0,
+            'status': 'success'
+        })
+
+    except Exception as e:
+        print(f"Error in /admin/stats: {e}")
+        return jsonify({
+            'error': str(e),
             'status': 'error'
         }), 500
 

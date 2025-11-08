@@ -13,6 +13,7 @@
     let conversationHistory = [];
     let isOpen = false;
     let isLoading = false;
+    let sessionId = null;
 
     // DOM elements
     let chatBubble, chatWindow, messageList, messageInput, sendButton;
@@ -40,6 +41,13 @@
                 primaryColor: options.primaryColor || '#2563eb',
                 title: options.title || 'Chat with us'
             };
+
+            // Generate or retrieve session ID
+            sessionId = sessionStorage.getItem('bot_session_id');
+            if (!sessionId) {
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                sessionStorage.setItem('bot_session_id', sessionId);
+            }
 
             // Load conversation history from sessionStorage
             loadConversationHistory();
@@ -452,7 +460,8 @@
             },
             body: JSON.stringify({
                 message: message,
-                conversation_history: conversationHistory.slice(0, -1) // Don't include the message we just added
+                conversation_history: conversationHistory.slice(0, -1), // Don't include the message we just added
+                session_id: sessionId  // Send session ID for database logging
             })
         })
         .then(response => {
