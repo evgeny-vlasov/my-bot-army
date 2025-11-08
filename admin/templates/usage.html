@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Usage Statistics - Bot Army Admin{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-chart-line"></i> Usage Statistics</h1>
+    <p class="subtitle">Monitor API usage and costs</p>
+</div>
+
+<!-- Date Range Selector -->
+<div class="dashboard-card">
+    <div class="card-body">
+        <div class="filter-bar">
+            <label for="days">Time Period:</label>
+            <select id="days" onchange="changePeriod(this.value)">
+                <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 Days</option>
+                <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 Days</option>
+                <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 Days</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Period Summary -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #3b82f6;">
+            <i class="fas fa-server"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ period_total.total_requests or 0 }}</div>
+            <div class="stat-label">Total Requests</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #10b981;">
+            <i class="fas fa-dollar-sign"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">${{ "%.4f"|format(period_total.total_cost or 0) }}</div>
+            <div class="stat-label">Total Cost</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #8b5cf6;">
+            <i class="fas fa-calendar"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">{{ days }}</div>
+            <div class="stat-label">Days</div>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #f59e0b;">
+            <i class="fas fa-calculator"></i>
+        </div>
+        <div class="stat-content">
+            <div class="stat-value">
+                {% if daily_usage|length > 0 %}
+                ${{ "%.4f"|format((period_total.total_cost or 0) / days) }}
+                {% else %}
+                $0.0000
+                {% endif %}
+            </div>
+            <div class="stat-label">Avg Daily Cost</div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Usage Chart -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-chart-area"></i> Daily Usage Trend</h2>
+    </div>
+    <div class="card-body">
+        <canvas id="dailyUsageChart" style="max-height: 300px;"></canvas>
+    </div>
+</div>
+
+<!-- Usage by Bot -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-robot"></i> Usage by Bot</h2>
+    </div>
+    <div class="card-body">
+        {% if usage_by_bot %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Bot Name</th>
+                        <th>Client</th>
+                        <th>Requests</th>
+                        <th>Input Tokens</th>
+                        <th>Output Tokens</th>
+                        <th>Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bot in usage_by_bot %}
+                    <tr>
+                        <td><strong>{{ bot.bot_name }}</strong></td>
+                        <td>{{ bot.client_name }}</td>
+                        <td>{{ bot.total_requests or 0 }}</td>
+                        <td>{{ "{:,}".format(bot.total_input_tokens or 0) }}</td>
+                        <td>{{ "{:,}".format(bot.total_output_tokens or 0) }}</td>
+                        <td>${{ "%.4f"|format(bot.total_cost or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No usage data for this period</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Daily Usage Chart
+const dailyUsageData = {
+    labels: [
+        {% for day in daily_usage %}
+        '{{ day.date.strftime('%Y-%m-%d') }}',
+        {% endfor %}
+    ],
+    datasets: [
+        {
+            label: 'Requests',
+            data: [
+                {% for day in daily_usage %}
+                {{ day.requests or 0 }},
+                {% endfor %}
+            ],
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            yAxisID: 'y',
+        },
+        {
+            label: 'Cost ($)',
+            data: [
+                {% for day in daily_usage %}
+                {{ day.cost or 0 }},
+                {% endfor %}
+            ],
+            borderColor: 'rgb(16, 185, 129)',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            yAxisID: 'y1',
+        }
+    ]
+};
+
+const dailyUsageConfig = {
+    type: 'line',
+    data: dailyUsageData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        interaction: {
+            mode: 'index',
+            intersect: false,
+        },
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: false,
+            }
+        },
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Requests'
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Cost ($)'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                },
+            },
+        }
+    },
+};
+
+const dailyChart = new Chart(
+    document.getElementById('dailyUsageChart'),
+    dailyUsageConfig
+);
+
+function changePeriod(days) {
+    window.location.href = '/admin/usage?days=' + days;
+}
+</script>
+{% endblock %}

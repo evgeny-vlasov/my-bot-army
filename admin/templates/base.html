@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Bot Army Admin{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-robot"></i>
+                <span>Bot Army Admin</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/admin" class="nav-link {% if request.path == '/admin' or request.path == '/' %}active{% endif %}">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/clients" class="nav-link {% if request.path == '/admin/clients' %}active{% endif %}">
+                        <i class="fas fa-users"></i> Clients
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/bots" class="nav-link {% if request.path == '/admin/bots' %}active{% endif %}">
+                        <i class="fas fa-robot"></i> Bots
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/usage" class="nav-link {% if request.path == '/admin/usage' %}active{% endif %}">
+                        <i class="fas fa-chart-line"></i> Usage
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/conversations" class="nav-link {% if request.path.startswith('/admin/conversation') %}active{% endif %}">
+                        <i class="fas fa-comments"></i> Conversations
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2025 Bot Army Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

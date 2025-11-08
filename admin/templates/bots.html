@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Bots - Bot Army Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-robot"></i> Bot Management</h1>
+    <p class="subtitle">Control and monitor all bots</p>
+</div>
+
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> All Bots ({{ bots|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if bots %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Bot Name</th>
+                        <th>Bot ID</th>
+                        <th>Client</th>
+                        <th>Port</th>
+                        <th>DB Status</th>
+                        <th>Service Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bot in bots %}
+                    <tr>
+                        <td><strong>{{ bot.bot_name }}</strong></td>
+                        <td><code>{{ bot.bot_id }}</code></td>
+                        <td>
+                            <div>{{ bot.client_name }}</div>
+                            <small style="color: #6b7280;">{{ bot.client_email }}</small>
+                        </td>
+                        <td>{{ bot.port }}</td>
+                        <td>
+                            {% if bot.status == 'active' %}
+                            <span class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> Active
+                            </span>
+                            {% else %}
+                            <span class="status-badge status-inactive">
+                                <i class="fas fa-times-circle"></i> Inactive
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if bot.service_running %}
+                            <span class="status-badge status-active">
+                                <i class="fas fa-circle"></i> Running
+                            </span>
+                            {% else %}
+                            <span class="status-badge status-inactive">
+                                <i class="fas fa-circle"></i> Stopped
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ bot.created_at.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <button
+                                onclick="toggleBot('{{ bot.bot_id }}')"
+                                class="btn btn-sm {% if bot.status == 'active' %}btn-danger{% else %}btn-success{% endif %}"
+                            >
+                                {% if bot.status == 'active' %}
+                                <i class="fas fa-stop"></i> Stop
+                                {% else %}
+                                <i class="fas fa-play"></i> Start
+                                {% endif %}
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No bots found</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Bot Statistics -->
+<div class="section-grid">
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-pie"></i> Bot Statistics</h2>
+        </div>
+        <div class="card-body">
+            <div class="usage-stat">
+                <span class="usage-label">Total Bots:</span>
+                <span class="usage-value">{{ bots|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Active (DB):</span>
+                <span class="usage-value">{{ bots|selectattr('status', 'equalto', 'active')|list|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Running (Service):</span>
+                <span class="usage-value">{{ bots|selectattr('service_running', 'equalto', True)|list|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2><i class="fas fa-info-circle"></i> Status Information</h2>
+        </div>
+        <div class="card-body">
+            <div class="info-box">
+                <p><strong>DB Status:</strong> The status stored in the database</p>
+                <p><strong>Service Status:</strong> Actual systemd service status</p>
+                <p><strong>Actions:</strong> Toggle will update both DB and service</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

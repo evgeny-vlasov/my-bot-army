@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Clients - Bot Army Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-users"></i> Client Management</h1>
+    <p class="subtitle">Manage all clients and their subscriptions</p>
+</div>
+
+<div class="dashboard-card">
+    <div class="card-header">
+        <h2><i class="fas fa-list"></i> All Clients ({{ clients|length }})</h2>
+    </div>
+    <div class="card-body">
+        {% if clients %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Company</th>
+                        <th>Status</th>
+                        <th>Bots</th>
+                        <th>Plan</th>
+                        <th>Price</th>
+                        <th>Subscription Status</th>
+                        <th>Period End</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td><strong>{{ client.name }}</strong></td>
+                        <td>{{ client.email }}</td>
+                        <td>{{ client.company_name or '-' }}</td>
+                        <td>
+                            {% if client.status == 'active' %}
+                            <span class="status-badge status-active">Active</span>
+                            {% else %}
+                            <span class="status-badge status-inactive">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-info">{{ client.bot_count }} bots</span>
+                        </td>
+                        <td>{{ client.plan_name or '-' }}</td>
+                        <td>
+                            {% if client.price %}
+                            ${{ "%.2f"|format(client.price) }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if client.subscription_status == 'active' %}
+                            <span class="status-badge status-active">Active</span>
+                            {% elif client.subscription_status == 'past_due' %}
+                            <span class="status-badge status-overdue">Past Due</span>
+                            {% elif client.subscription_status %}
+                            <span class="status-badge status-inactive">{{ client.subscription_status }}</span>
+                            {% else %}
+                            <span class="status-badge status-inactive">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if client.current_period_end %}
+                            {{ client.current_period_end.strftime('%Y-%m-%d') }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ client.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">No clients found</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="section-grid">
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2><i class="fas fa-chart-pie"></i> Client Statistics</h2>
+        </div>
+        <div class="card-body">
+            <div class="usage-stat">
+                <span class="usage-label">Total Clients:</span>
+                <span class="usage-value">{{ clients|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Active:</span>
+                <span class="usage-value">{{ clients|selectattr('status', 'equalto', 'active')|list|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Inactive:</span>
+                <span class="usage-value">{{ clients|selectattr('status', 'equalto', 'inactive')|list|length }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h2><i class="fas fa-credit-card"></i> Subscription Overview</h2>
+        </div>
+        <div class="card-body">
+            <div class="usage-stat">
+                <span class="usage-label">Active Subscriptions:</span>
+                <span class="usage-value">{{ clients|selectattr('subscription_status', 'equalto', 'active')|list|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Past Due:</span>
+                <span class="usage-value">{{ clients|selectattr('subscription_status', 'equalto', 'past_due')|list|length }}</span>
+            </div>
+            <div class="usage-stat">
+                <span class="usage-label">Total MRR:</span>
+                <span class="usage-value">
+                    ${{ "%.2f"|format(clients|selectattr('subscription_status', 'equalto', 'active')|map(attribute='price')|select|sum or 0) }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
