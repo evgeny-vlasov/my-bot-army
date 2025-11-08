@@ -7,6 +7,7 @@ from app.models.conversation import (
     ConversationResponse,
     ConversationWithMessages,
 )
+from app.models.usage import UsageCreate, UsageResponse
 
 __all__ = [
     "ClientCreate",
@@ -20,4 +21,6 @@ __all__ = [
     "ConversationCreate",
     "ConversationResponse",
     "ConversationWithMessages",
+    "UsageCreate",
+    "UsageResponse",
 ]
