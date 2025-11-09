@@ -7,3 +7,4 @@ pydantic-settings==2.1.0
 python-dotenv==1.0.0
 pgvector==0.2.4
 alembic==1.13.0
+httpx==0.25.1

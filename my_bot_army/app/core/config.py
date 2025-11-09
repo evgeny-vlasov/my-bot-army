@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str
 
+    # Anthropic API
+    ANTHROPIC_API_KEY: str
+
     class Config:
         env_file = ".env"
         case_sensitive = True
