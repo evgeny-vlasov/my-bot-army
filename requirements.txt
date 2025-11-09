@@ -1,0 +1,35 @@
+# My Bot Army - Consolidated Requirements
+# This file includes all dependencies for the complete platform
+
+# Web Frameworks
+fastapi==0.104.1
+flask==3.0.0
+uvicorn[standard]==0.24.0
+flask-cors==4.0.0
+
+# Database
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+psycopg2-binary>=2.9.0
+pgvector==0.2.4
+alembic==1.13.0
+
+# Data Validation & Settings
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# External APIs
+anthropic==0.39.0
+
+# HTTP Client
+httpx==0.25.1
+
+# Utilities
+python-dotenv==1.0.0
+
+# Development & Testing (Optional - uncomment to install)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0
