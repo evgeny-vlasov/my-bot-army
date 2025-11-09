@@ -16,8 +16,16 @@ from app.models.conversation import (
 from app.schemas.conversation import Conversation, Message
 from app.schemas.bot import Bot
 from app.schemas.usage import Usage
+from app.services.claude_service import ClaudeService
+from app.services.rag_service import RAGService
+from app.services.embedding_service import EmbeddingService
+from app.core.config import settings
 
 router = APIRouter()
+
+# Initialize services
+claude_service = ClaudeService(api_key=settings.ANTHROPIC_API_KEY)
+embedding_service = EmbeddingService(api_key=settings.ANTHROPIC_API_KEY)
 
 
 @router.post("/", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
@@ -205,12 +213,12 @@ async def chat(
     await db.flush()
     await db.refresh(user_message)
 
-    # Get bot response (placeholder - will integrate Claude API later)
-    # For now, return a simple echo response
-    bot_response_text = await get_bot_response(
+    # Get bot response using Claude API with RAG
+    bot_response_text, tokens_used = await get_bot_response(
         bot=bot,
         conversation_history=conversation.messages,
         user_message=chat_request.message,
+        db=db,
     )
 
     # Save bot message
@@ -218,6 +226,7 @@ async def chat(
         conversation_id=conversation.id,
         role="assistant",
         content=bot_response_text,
+        tokens_used=tokens_used,
     )
     db.add(bot_message)
     await db.flush()
@@ -234,7 +243,7 @@ async def chat(
         client_id=bot.client_id,
         bot_id=bot.id,
         conversation_id=conversation.id,
-        tokens_used=len(chat_request.message.split()) + len(bot_response_text.split()),  # Rough estimate
+        tokens_used=tokens_used,
     )
 
     return ChatResponse(
@@ -248,21 +257,35 @@ async def get_bot_response(
     bot: Bot,
     conversation_history: List[Message],
     user_message: str,
-) -> str:
+    db: AsyncSession,
+) -> tuple[str, int]:
     """
-    Get response from bot (Claude API integration).
+    Get response from bot using Claude API with RAG.
 
-    TODO: Integrate with Anthropic Claude API
-    For now, returns a placeholder response.
+    Returns:
+        Tuple of (response_text, tokens_used)
     """
-    # Placeholder implementation
-    # In Phase 5, this will call Claude API with:
-    # - bot.system_prompt
-    # - conversation_history
-    # - user_message
-    # - bot.config (model, temperature, etc.)
+    # Get relevant context from RAG
+    context = await RAGService.get_context_for_query(
+        db=db,
+        bot_id=bot.id,
+        query=user_message,
+        embedding_service=embedding_service,
+    )
 
-    return f"Hello! I'm {bot.name}. You said: '{user_message}'. (This is a placeholder response. Claude API integration coming in Phase 5)"
+    # Get response from Claude
+    response = await claude_service.get_response(
+        bot=bot,
+        conversation_history=conversation_history,
+        user_message=user_message,
+        context=context,
+    )
+
+    # Extract usage info
+    usage = response.get("usage", {})
+    tokens_used = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+
+    return response["content"], tokens_used
 
 
 async def log_usage(
