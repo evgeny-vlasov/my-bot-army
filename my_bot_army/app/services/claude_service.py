@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Any
 import httpx
-from app.models.conversation import Message
-from app.models.bot import Bot
+from app.schemas.conversation import Message
+from app.schemas.bot import Bot
 
 
 class ClaudeService:
