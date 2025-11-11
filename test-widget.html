@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2563eb;
+        }
+        .status {
+            background: #f0f9ff;
+            border: 1px solid #2563eb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .error {
+            background: #fef2f2;
+            border: 1px solid #dc2626;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <h1>Widget Test Page</h1>
+    <p>This is a test page to verify the chat widget is working correctly.</p>
+
+    <div id="status" class="status">
+        Loading widget...
+    </div>
+
+    <div id="console-output" style="margin-top: 20px; padding: 10px; background: #f3f4f6; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+
+    <script>
+        // Capture console logs to display on page
+        const consoleDiv = document.getElementById('console-output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addToConsole(type, message) {
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? '#dc2626' : type === 'warn' ? '#f59e0b' : '#000';
+            div.textContent = `[${type.toUpperCase()}] ${message}`;
+            consoleDiv.appendChild(div);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole('log', args.join(' '));
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole('error', args.join(' '));
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole('warn', args.join(' '));
+        };
+
+        console.log('Test page loaded');
+    </script>
+
+    <!-- Load the widget from your Flask server -->
+    <!-- Replace with your server IP and port -->
+    <script src="http://192.168.1.66:5000/widget.js"></script>
+
+    <script>
+        console.log('Widget script loaded');
+        console.log('BotWidget object:', typeof BotWidget);
+
+        // Wait for DOM to be fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWidget);
+        } else {
+            initWidget();
+        }
+
+        function initWidget() {
+            console.log('DOM ready, initializing widget...');
+
+            // Check if BotWidget is available
+            if (typeof BotWidget === 'undefined') {
+                document.getElementById('status').innerHTML =
+                    '<strong>ERROR:</strong> BotWidget not loaded. Check console for errors.';
+                document.getElementById('status').className = 'status error';
+                console.error('BotWidget is undefined - widget.js may not have loaded correctly');
+                return;
+            }
+
+            try {
+                BotWidget.init({
+                    apiUrl: 'http://192.168.1.66:5000',
+                    botId: 'keystone-landscaping',
+                    position: 'bottom-right',
+                    primaryColor: '#2563eb',
+                    title: 'Chat with Keystone'
+                });
+
+                console.log('Widget initialized successfully');
+                document.getElementById('status').innerHTML =
+                    '<strong>✓ Widget initialized!</strong><br>You should see a chat bubble in the bottom-right corner.';
+
+                // Check if bubble was created
+                setTimeout(() => {
+                    const bubble = document.querySelector('.bot-widget-bubble');
+                    if (bubble) {
+                        console.log('✓ Chat bubble found in DOM');
+                        console.log('Bubble styles:', window.getComputedStyle(bubble).cssText);
+                    } else {
+                        console.error('✗ Chat bubble NOT found in DOM');
+                        document.getElementById('status').innerHTML +=
+                            '<br><strong style="color: red;">WARNING:</strong> Chat bubble not found in DOM';
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error('Error initializing widget:', error);
+                document.getElementById('status').innerHTML =
+                    '<strong>ERROR:</strong> ' + error.message;
+                document.getElementById('status').className = 'status error';
+            }
+        }
+    </script>
+</body>
+</html>
