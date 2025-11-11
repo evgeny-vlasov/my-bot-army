@@ -177,12 +177,19 @@ def serve_test_page():
 
         log('Page loaded');
         log('Loading widget.js from: ' + window.location.origin + '/widget.js');
+
+        // Store original error handler
+        const originalOnError = window.onerror;
+
+        // Track if widget script loaded
+        window.widgetScriptLoaded = false;
     </script>
 
-    <script src="/widget.js"></script>
+    <script src="/widget.js" onerror="log('ERROR: widget.js failed to load!', 'error')" onload="window.widgetScriptLoaded = true; log('widget.js file loaded successfully');"></script>
 
     <script>
         log('Widget script tag processed');
+        log('widgetScriptLoaded: ' + window.widgetScriptLoaded);
 
         function initWidget() {
             log('Checking for BotWidget...');
