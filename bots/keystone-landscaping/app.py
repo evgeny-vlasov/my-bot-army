@@ -84,6 +84,167 @@ def health():
     })
 
 
+@app.route('/test', methods=['GET'])
+def serve_test_page():
+    """
+    Serve a test page for the widget
+    """
+    html = '''<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget Test - Keystone Hardscapes</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .demo-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2563eb; }
+        .status {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border: 2px solid #2563eb;
+        }
+        .error { background: #fef2f2; border-color: #dc2626; color: #dc2626; }
+        .success { background: #f0fdf4; border-color: #16a34a; color: #16a34a; }
+        ul { line-height: 1.8; }
+        #console {
+            margin-top: 20px;
+            padding: 10px;
+            background: #1f2937;
+            color: #10b981;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-line { margin: 2px 0; }
+        .log-error { color: #ef4444; }
+        .log-warn { color: #f59e0b; }
+        .log-success { color: #10b981; }
+    </style>
+</head>
+<body>
+    <div class="demo-box">
+        <h1>🔧 Widget Debug Test</h1>
+        <p>This page tests the chat widget and displays detailed debugging information.</p>
+
+        <div id="status" class="status">
+            ⏳ Loading widget...
+        </div>
+
+        <p><strong>What to check:</strong></p>
+        <ul>
+            <li>Widget script should load without errors</li>
+            <li>Chat bubble should appear in bottom-right corner</li>
+            <li>Console below shows debugging information</li>
+        </ul>
+
+        <div id="console"></div>
+    </div>
+
+    <script>
+        const consoleDiv = document.getElementById('console');
+        const statusDiv = document.getElementById('status');
+
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'log-error' : type === 'warn' ? 'log-warn' : type === 'success' ? 'log-success' : '';
+            consoleDiv.innerHTML += `<div class="log-line ${className}">[${time}] ${message}</div>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Capture console errors
+        window.onerror = function(msg, url, line, col, error) {
+            log(`ERROR: ${msg} at ${url}:${line}:${col}`, 'error');
+            statusDiv.className = 'status error';
+            statusDiv.innerHTML = '❌ JavaScript error occurred - check console below';
+        };
+
+        log('Page loaded');
+        log('Loading widget.js from: ' + window.location.origin + '/widget.js');
+    </script>
+
+    <script src="/widget.js"></script>
+
+    <script>
+        log('Widget script tag processed');
+
+        function initWidget() {
+            log('Checking for BotWidget...');
+
+            if (typeof BotWidget === 'undefined') {
+                log('BotWidget not found, retrying in 100ms...', 'warn');
+                setTimeout(initWidget, 100);
+                return;
+            }
+
+            log('BotWidget object found!', 'success');
+
+            try {
+                BotWidget.init({
+                    apiUrl: window.location.origin,
+                    botId: 'keystone-landscaping',
+                    position: 'bottom-right',
+                    primaryColor: '#2563eb',
+                    title: 'Chat with Keystone'
+                });
+
+                log('BotWidget.init() called successfully', 'success');
+
+                setTimeout(() => {
+                    const bubble = document.querySelector('.bot-widget-bubble');
+                    const chatWindow = document.querySelector('.bot-widget-window');
+
+                    if (bubble) {
+                        log('✓ Chat bubble found in DOM!', 'success');
+                        log('Bubble visible: ' + (bubble.offsetParent !== null), 'success');
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = '✅ Widget loaded successfully! Look for the chat bubble in the bottom-right corner.';
+                    } else {
+                        log('✗ Chat bubble NOT found in DOM', 'error');
+                        statusDiv.className = 'status error';
+                        statusDiv.innerHTML = '❌ Widget initialized but bubble not created';
+                    }
+
+                    if (chatWindow) {
+                        log('✓ Chat window found in DOM', 'success');
+                    }
+                }, 500);
+
+            } catch (error) {
+                log('ERROR initializing widget: ' + error.message, 'error');
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+
+        // Start initialization
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initWidget);
+        } else {
+            initWidget();
+        }
+    </script>
+</body>
+</html>'''
+    return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+
 @app.route('/widget.js', methods=['GET'])
 def serve_widget():
     """
@@ -99,10 +260,15 @@ def serve_widget():
                 'error': 'Widget file not found'
             }), 404
 
-        return send_file(
+        response = send_file(
             widget_path,
             mimetype='application/javascript'
         )
+        # Add cache control headers to prevent stale cached versions
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"Error serving widget: {e}")
         return jsonify({

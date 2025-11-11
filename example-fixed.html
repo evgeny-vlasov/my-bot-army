@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keystone Hardscapes - AI Assistant Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .demo-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2563eb; }
+        .instructions {
+            background: #e0f2fe;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        ul { line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <div class="demo-box">
+        <h1>🏡 Keystone Hardscapes AI Assistant</h1>
+        <p><strong>Hi Andrew!</strong> This is your new AI-powered chat assistant demo.</p>
+
+        <div class="instructions">
+            <p><strong>Try asking:</strong></p>
+            <ul>
+                <li>"What services do you offer?"</li>
+                <li>"Do you work in Calgary and Airdrie?"</li>
+                <li>"Tell me about your warranty"</li>
+                <li>"How much does a typical patio cost?"</li>
+                <li>"What about snow removal?"</li>
+            </ul>
+        </div>
+
+        <p>👉 <strong>Look for the blue chat bubble in the bottom-right corner!</strong></p>
+        <p style="color: #666; font-size: 14px;">This is a demo. The bot can be customized with your specific pricing, services, and information.</p>
+    </div>
+
+    <!-- Load widget script -->
+    <script src="http://205.206.95.245:5000/widget.js"></script>
+
+    <!-- Initialize widget after script loads -->
+    <script>
+        // Wait for widget to be fully loaded before initializing
+        (function initWidget() {
+            // Check if BotWidget is available
+            if (typeof BotWidget !== 'undefined' && BotWidget.init) {
+                // Widget is loaded, initialize it
+                BotWidget.init({
+                    apiUrl: 'http://205.206.95.245:5000',
+                    botId: 'keystone-landscaping',
+                    position: 'bottom-right',
+                    primaryColor: '#2563eb',
+                    title: 'Chat with Keystone'
+                });
+                console.log('Widget initialized successfully');
+            } else {
+                // Widget not loaded yet, try again in 100ms
+                console.log('Waiting for BotWidget to load...');
+                setTimeout(initWidget, 100);
+            }
+        })();
+    </script>
+</body>
+</html>
