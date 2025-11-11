@@ -8,6 +8,8 @@
 (function() {
     'use strict';
 
+    console.log('[BotWidget] IIFE started');
+
     // Widget configuration and state
     let config = {};
     let conversationHistory = [];
@@ -17,6 +19,8 @@
 
     // DOM elements
     let chatBubble, chatWindow, messageList, messageInput, sendButton;
+
+    console.log('[BotWidget] About to define window.BotWidget');
 
     /**
      * Initialize the widget with configuration
@@ -575,5 +579,7 @@
             messageList.scrollTop = messageList.scrollHeight;
         }, 100);
     }
+
+    console.log('[BotWidget] IIFE completed, window.BotWidget defined');
 
 })();
