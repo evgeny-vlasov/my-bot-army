@@ -7,6 +7,7 @@ Provides API endpoints for chat functionality and serves the widget.
 
 import os
 import sys
+import json
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
@@ -16,6 +17,16 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from shared.claude_client import ClaudeClient
 from config import Config
 from prompts import SYSTEM_PROMPT
+
+# Import RAG components
+try:
+    from shared.rag import VoyageClient, RAGRetriever
+    from shared.database import DatabaseConnection
+    import rag_config
+    RAG_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠ Warning: RAG modules not available: {e}")
+    RAG_AVAILABLE = False
 
 # Import database functions for conversation logging
 try:
@@ -45,6 +56,24 @@ except Exception as e:
     print(f"✗ Failed to initialize Claude client: {e}")
     print(f"  Please check your .env file and ANTHROPIC_API_KEY")
     sys.exit(1)
+
+# Initialize RAG components
+rag_retriever = None
+if RAG_AVAILABLE and rag_config.get_rag_enabled():
+    try:
+        voyage_client = VoyageClient(model=rag_config.VOYAGE_MODEL)
+        db_connection = DatabaseConnection()
+        rag_retriever = RAGRetriever(voyage_client, db_connection)
+        print(f"✓ RAG system initialized (model: {rag_config.VOYAGE_MODEL})")
+    except Exception as e:
+        print(f"⚠ Warning: Failed to initialize RAG: {e}")
+        print(f"  Bot will run without RAG functionality")
+        rag_retriever = None
+else:
+    if not RAG_AVAILABLE:
+        print(f"⚠ RAG not available - missing dependencies")
+    else:
+        print(f"⚠ RAG disabled in configuration")
 
 # Verify bot exists in database on startup
 if DATABASE_AVAILABLE:
@@ -384,18 +413,67 @@ def chat():
             except Exception as db_error:
                 print(f"Warning: Could not save user message: {db_error}")
 
-        # Call Claude API
+        # RAG: Search knowledge base for relevant context
+        context_chunks = []
+        enhanced_system_prompt = SYSTEM_PROMPT
+
+        if rag_retriever:
+            try:
+                # Search for relevant chunks
+                context, chunks = rag_retriever.get_context_for_query(
+                    bot_id=Config.BOT_ID,
+                    query=message,
+                    top_k=rag_config.TOP_K_CHUNKS,
+                    similarity_threshold=rag_config.SIMILARITY_THRESHOLD,
+                    max_tokens=rag_config.MAX_CONTEXT_TOKENS
+                )
+
+                # If we found relevant context, enhance the system prompt
+                if context and chunks:
+                    enhanced_system_prompt = (
+                        f"{SYSTEM_PROMPT}\n\n"
+                        f"{rag_config.RAG_SYSTEM_INSTRUCTION}\n\n"
+                        f"{context}"
+                    )
+                    context_chunks = chunks
+                    print(f"RAG: Found {len(chunks)} relevant chunks")
+                else:
+                    print(f"RAG: No relevant chunks found (threshold: {rag_config.SIMILARITY_THRESHOLD})")
+
+            except Exception as rag_error:
+                print(f"Warning: RAG search failed: {rag_error}")
+                # Continue without RAG if it fails
+
+        # Call Claude API with (possibly enhanced) system prompt
         try:
             response = claude_client.chat(
                 message=message,
-                system_prompt=SYSTEM_PROMPT,
+                system_prompt=enhanced_system_prompt,
                 conversation_history=conversation_history
             )
 
-            # Save assistant response to database
+            # Save assistant response to database (with context chunks if available)
             if conversation_id and DATABASE_AVAILABLE:
                 try:
-                    save_message(conversation_id, 'assistant', response)
+                    # Prepare context chunks for storage
+                    if rag_config.LOG_CONTEXT_CHUNKS and context_chunks:
+                        chunks_json = json.dumps([
+                            {
+                                'chunk_id': chunk['chunk_id'],
+                                'document_id': chunk['document_id'],
+                                'document_title': chunk['document_title'],
+                                'similarity': chunk['similarity'],
+                                'source': chunk.get('source', '')
+                            }
+                            for chunk in context_chunks
+                        ])
+
+                        # Save with context_chunks (requires updated save_message function)
+                        # For now, save normally - can enhance later
+                        save_message(conversation_id, 'assistant', response)
+                    else:
+                        save_message(conversation_id, 'assistant', response)
+
                 except Exception as db_error:
                     print(f"Warning: Could not save assistant message: {db_error}")
 
