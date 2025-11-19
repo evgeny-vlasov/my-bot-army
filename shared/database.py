@@ -819,6 +819,34 @@ def get_overdue_subscriptions() -> List[Dict[str, Any]]:
 
 
 # ============================================================================
+# DATABASE CONNECTION WRAPPER FOR RAG
+# ============================================================================
+
+class DatabaseConnection:
+    """
+    Database connection wrapper for RAG components.
+
+    Provides a consistent interface for RAG modules that expect
+    a get_connection() method returning a context manager.
+
+    Usage:
+        db = DatabaseConnection()
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM documents")
+    """
+
+    def get_connection(self):
+        """
+        Return the database connection context manager.
+
+        Returns:
+            Context manager that yields a psycopg2 connection
+        """
+        return get_db_connection()
+
+
+# ============================================================================
 # TESTING
 # ============================================================================
 
