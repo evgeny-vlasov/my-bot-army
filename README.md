@@ -1,116 +1,236 @@
 # My Bot Army
 
-A scalable multi-bot platform for deploying AI assistants powered by Claude. Build, manage, and deploy multiple chatbots with RAG (Retrieval Augmented Generation) capabilities, each with custom knowledge bases and personalities.
+> **🤖 For LLMs/Claude:** Start by reading [LLM-README.md](./LLM-README.md) for complete project context
 
-## Architecture Overview
+A scalable multi-tenant platform for deploying AI chatbots powered by Claude, with RAG (Retrieval-Augmented Generation) capabilities for knowledge-base enhanced responses.
 
-This is a modern **FastAPI** application with PostgreSQL + pgvector for semantic search and conversation management.
+**Current Status:** ✅ Production-Ready
+**Active System:** Flask-based Keystone Hardscapes Bot with full RAG integration
+**Last Updated:** November 19, 2025
 
-```
-my-bot-army/
-├── my_bot_army/                    # Main application package
-│   ├── app/
-│   │   ├── main.py                 # FastAPI application entry point
-│   │   ├── database.py             # SQLAlchemy async setup + pgvector
-│   │   ├── core/
-│   │   │   ├── config.py           # Pydantic settings
-│   │   │   └── exceptions.py       # Error handlers
-│   │   ├── models/                 # Pydantic models (request/response)
-│   │   │   ├── bot.py
-│   │   │   ├── client.py
-│   │   │   ├── conversation.py
-│   │   │   └── document.py
-│   │   ├── schemas/                # SQLAlchemy ORM models (database)
-│   │   │   ├── bot.py
-│   │   │   ├── client.py
-│   │   │   ├── conversation.py
-│   │   │   ├── document.py
-│   │   │   └── usage.py
-│   │   ├── api/v1/                 # API endpoints
-│   │   │   ├── clients.py
-│   │   │   ├── bots.py
-│   │   │   ├── conversations.py    # Main chat endpoint
-│   │   │   ├── documents.py        # RAG knowledge base
-│   │   │   ├── widget.py           # Embeddable chat UI
-│   │   │   └── admin.py
-│   │   └── services/               # Business logic
-│   │       ├── claude_service.py   # Anthropic API integration
-│   │       ├── rag_service.py      # Vector similarity search
-│   │       └── embedding_service.py # Text embeddings
-│   └── tests/
-├── requirements.txt                # Python dependencies
-├── .env.example                    # Environment template
-└── [legacy directories]            # bots/, admin/, shared/ - older code
+---
+
+## 🚀 Quick Start
+
+### For Developers
+
+```bash
+# 1. Clone and enter directory
+git clone https://github.com/evgeny-vlasov/my-bot-army.git
+cd my-bot-army
+
+# 2. Set up environment
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Configure .env file
+cp .env.example .env
+nano .env  # Add your ANTHROPIC_API_KEY and VOYAGE_API_KEY
+
+# 4. Start the Keystone bot
+cd bots/keystone-landscaping
+python3 app.py
+
+# Bot runs on http://localhost:5001
 ```
 
-## Tech Stack
+### For LLMs Working on This Project
 
-- **Framework**: FastAPI 0.104+ (async/await)
-- **Database**: PostgreSQL 15+ with pgvector extension
-- **ORM**: SQLAlchemy 2.0+ (async)
-- **AI**: Anthropic Claude API (Sonnet 4.5)
-- **Embeddings**: Claude text embeddings via Anthropic API
-- **Vector Search**: pgvector with IVFFlat indexing
-- **Validation**: Pydantic 2.5+
-- **HTTP Client**: httpx (async)
-- **Server**: Uvicorn (ASGI)
+**📖 Read [LLM-README.md](./LLM-README.md) first!**
 
-## Key Features
+That document contains:
+- Complete project architecture
+- Current system status
+- Development workflows
+- Common tasks
+- Troubleshooting guide
+- Everything you need to understand the codebase
 
-### Current Implementation
+---
 
-✅ **Multi-tenant bot platform**
-- Clients can have multiple bots
-- Each bot has custom system prompt and configuration
-- Bot lifecycle management (active/inactive, deployment status)
+## 📊 Project Overview
 
-✅ **Conversation management**
-- Full conversation history with messages
-- Session tracking with user identifiers
-- Token usage and cost tracking
+### Two Systems
 
-✅ **RAG (Retrieval Augmented Generation)**
-- Document ingestion with vector embeddings
-- Semantic similarity search using pgvector
-- Context injection into Claude prompts
-- Configurable similarity thresholds
+This repository contains two bot systems:
 
-✅ **RESTful API (v1)**
-- Client management
-- Bot CRUD operations
-- Chat endpoint with streaming support potential
-- Document upload and management
-- Usage analytics
+#### 1. **Active: Flask-Based Bots** (`bots/` directory) ⭐
 
-✅ **Embeddable Widget**
-- Simple HTML/JS chat interface
-- Served at `/api/v1/widget/chat-widget/{bot_id}`
+**Status:** Production, actively used
+**Current Bot:** Keystone Hardscapes landscaping assistant
+**Framework:** Flask + Claude Sonnet 4.5
+**RAG:** Fully integrated with Voyage AI embeddings + pgvector
 
-✅ **Production-ready**
-- Async database operations
-- Connection pooling
-- Health check endpoint
-- CORS middleware
-- Exception handling
-- Background task processing (usage logging)
+**Location:** `/opt/bot-farm/bots/keystone-landscaping/`
 
-## Installation & Setup
+**Features:**
+- ✅ RAG-enhanced responses from knowledge base
+- ✅ Real-time chat with Claude Sonnet 4.5
+- ✅ Conversation history and logging
+- ✅ Embeddable JavaScript widget
+- ✅ Usage tracking and cost monitoring
+- ✅ Production-ready error handling
+
+#### 2. **Legacy: FastAPI System** (`my_bot_army/` directory)
+
+**Status:** Prototype/reference implementation
+**Framework:** FastAPI (async)
+**Note:** Not currently deployed, may be used for future scaling
+
+---
+
+## 🏗️ Architecture
+
+### Technology Stack
+
+**Production (Keystone Bot):**
+- **Framework:** Flask 3.x
+- **LLM:** Claude Sonnet 4.5 (Anthropic API)
+- **Embeddings:** Voyage AI voyage-3-lite (512D, $0.06/1M tokens)
+- **Database:** PostgreSQL 15+ with pgvector extension
+- **Vector Search:** pgvector (cosine similarity)
+- **Runtime:** Python 3.11
+
+**Key Components:**
+```
+┌─────────────────────────────────────────────────┐
+│  User → Chat Widget → Flask App                 │
+│           ↓                                      │
+│      RAG Retriever                               │
+│           ↓                                      │
+│   Vector Search (pgvector)                      │
+│           ↓                                      │
+│   Enhanced Prompt → Claude API → Response       │
+└─────────────────────────────────────────────────┘
+```
+
+### Database Schema
+
+**Core Tables:**
+- `clients` - Business clients
+- `bots` - Bot configurations and prompts
+- `conversations` - Chat sessions
+- `messages` - Individual messages
+- `documents` - Knowledge base documents
+- `document_chunks` - Chunked docs with vector embeddings
+- `api_usage` - Usage tracking
+
+**See:** [Database schema documentation](./docs/database_schema.md) (if exists)
+
+---
+
+## 📂 Repository Structure
+
+```
+/opt/bot-farm/
+├── bots/                              # Flask-based bots ⭐ ACTIVE
+│   └── keystone-landscaping/          # Production Keystone bot
+│       ├── app.py                     # Main Flask application
+│       ├── config.py                  # Configuration
+│       ├── prompts.py                 # System prompts
+│       ├── rag_config.py              # RAG settings
+│       └── knowledge_base/            # KB source files
+│
+├── shared/                            # Shared modules
+│   ├── database.py                    # DB functions
+│   ├── claude_client.py               # Claude API wrapper
+│   ├── rag_helpers.py                 # RAG helper functions
+│   ├── rag/                           # RAG OOP components
+│   │   ├── voyage_client.py           # Voyage AI integration
+│   │   ├── retriever.py               # Vector search
+│   │   ├── chunker.py                 # Text chunking
+│   │   └── embedder.py                # Document processing
+│   └── widget/                        # JavaScript chat widget
+│
+├── admin/                             # Admin dashboard (Flask)
+├── my_bot_army/                       # FastAPI system (legacy)
+├── tests/                             # Test suites
+├── migrations/                        # Database migrations
+├── knowledge_base/                    # Source KB files
+├── scripts/                           # Utility scripts
+│
+├── LLM-README.md                      # 📖 Context guide for LLMs
+├── FLASK_RAG_INTEGRATION.md           # RAG integration docs
+├── DEPLOYMENT_VERIFICATION.md         # Deployment report
+└── requirements.txt                   # Python dependencies
+```
+
+---
+
+## 🎯 Key Features
+
+### RAG (Retrieval-Augmented Generation)
+
+The bot automatically retrieves relevant information from its knowledge base before responding.
+
+**How it works:**
+1. User asks: "How much does a patio cost?"
+2. System generates query embedding (Voyage AI)
+3. Vector search finds relevant chunks (pgvector)
+4. Context injected into system prompt
+5. Claude generates response with KB context
+
+**Configuration:** `bots/keystone-landscaping/rag_config.py`
+```python
+TOP_K_CHUNKS = 5                    # Retrieve top 5 chunks
+SIMILARITY_THRESHOLD = 0.7          # Minimum relevance (0-1)
+MAX_CONTEXT_TOKENS = 2000           # Max tokens in context
+VOYAGE_MODEL = "voyage-3-lite"      # 512D embeddings
+```
+
+**Current Knowledge Base:**
+- 2 documents (company info, FAQ)
+- 3 chunks with embeddings
+- Covers: services, pricing, warranties, timing
+
+**Cost:** ~$0.000006-0.000012 per query (extremely affordable)
+
+### Embeddable Chat Widget
+
+Simple JavaScript widget for any website:
+
+```html
+<!-- Add to your website -->
+<script src="http://localhost:5001/widget.js"></script>
+<script>
+  BotWidget.init({
+    apiUrl: 'http://localhost:5001',
+    botId: 'keystone-landscaping',
+    position: 'bottom-right',
+    primaryColor: '#2563eb',
+    title: 'Chat with Keystone'
+  });
+</script>
+```
+
+### Conversation Management
+
+- Full conversation history
+- Session tracking
+- Message persistence
+- Usage tracking and billing
+
+---
+
+## 🛠️ Installation & Setup
 
 ### Prerequisites
 
 - Python 3.11+
 - PostgreSQL 15+ with pgvector extension
-- Anthropic API key
+- Anthropic API key (Claude)
+- Voyage AI API key (embeddings)
 
 ### 1. Install PostgreSQL + pgvector
 
 ```bash
-# Debian/Ubuntu
+# Ubuntu/Debian
 sudo apt update
 sudo apt install postgresql postgresql-contrib
 sudo -u postgres psql -c "CREATE EXTENSION vector;"
 
-# macOS (Homebrew)
+# macOS
 brew install postgresql pgvector
 ```
 
@@ -121,340 +241,319 @@ sudo -u postgres psql
 ```
 
 ```sql
-CREATE DATABASE my_bot_army;
+CREATE DATABASE botfarm;
 CREATE USER botfarm WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE my_bot_army TO botfarm;
-\c my_bot_army
+GRANT ALL PRIVILEGES ON DATABASE botfarm TO botfarm;
+\c botfarm
 CREATE EXTENSION vector;
 \q
 ```
 
-### 3. Install Python Dependencies
+### 3. Run Database Migrations
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/my-bot-army.git
-cd my-bot-army
+cd /opt/bot-farm
+psql -U botfarm -d botfarm -f migrations/001_initial_schema.sql
+# Run other migrations as needed
+```
 
-# Create virtual environment
+### 4. Install Python Dependencies
+
+```bash
+cd /opt/bot-farm
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Configure Environment
+### 5. Configure Environment
+
+Create `.env` file:
 
 ```bash
-cp .env.example .env
-nano .env
-```
-
-Set these required variables:
-
-```bash
-# Database
-DATABASE_URL=postgresql+asyncpg://botfarm:your_secure_password@localhost/my_bot_army
-
 # API Keys
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+ANTHROPIC_API_KEY=sk-ant-api03-...
+VOYAGE_API_KEY=pa-...
 
-# Security
-SECRET_KEY=your-secret-key-here  # Generate with: openssl rand -hex 32
+# Database
+DB_PASSWORD=your_secure_password
 
-# Application
-APP_NAME="My Bot Army"
-APP_VERSION="1.0.0"
+# Bot Configuration
+BOT_ID=keystone-landscaping
+BOT_NAME=Keystone Hardscapes Assistant
+PORT=5001
+HOST=0.0.0.0
 DEBUG=False
-LOG_LEVEL=INFO
-
-# Database Pool
-DATABASE_POOL_SIZE=20
-DATABASE_MAX_OVERFLOW=10
 ```
 
-### 5. Run the Application
+### 6. Load Knowledge Base
 
 ```bash
-# Development mode (auto-reload)
-uvicorn my_bot_army.app.main:app --reload --host 0.0.0.0 --port 8000
-
-# Production mode
-uvicorn my_bot_army.app.main:app --host 0.0.0.0 --port 8000 --workers 4
+cd /opt/bot-farm
+python3 load_keystone_kb.py
 ```
 
-Application will be available at:
-- API: `http://localhost:8000`
-- Docs: `http://localhost:8000/docs` (Swagger UI)
-- Health: `http://localhost:8000/health`
+Expected output:
+```
+Bot: Keystone Hardscapes Assistant (keystone-landscaping)
+[1/2] Processing: keystone_company.txt
+      ✓ Created 1 chunks
+[2/2] Processing: keystone_faq.txt
+      ✓ Created 2 chunks
+✓ Knowledge base loaded successfully!
+```
 
-## API Usage Guide
-
-### Authentication
-
-Currently, the API is open. Add authentication middleware for production.
-
-### Core Endpoints
-
-#### 1. Create a Client
+### 7. Start the Bot
 
 ```bash
-POST /api/v1/clients/
-{
-  "name": "Acme Corp",
-  "contact_email": "contact@acme.com",
-  "subscription_plan": "pro",
-  "is_active": true
-}
+cd /opt/bot-farm/bots/keystone-landscaping
+python3 app.py
 ```
 
-#### 2. Create a Bot
+You should see:
+```
+✓ Claude client initialized successfully
+✓ RAG system initialized (model: voyage-3-lite)
+✓ Bot 'Keystone Hardscapes Assistant' connected to database
+ * Running on http://0.0.0.0:5001
+```
+
+### 8. Test It
 
 ```bash
-POST /api/v1/bots/
-{
-  "client_id": 1,
-  "name": "Support Bot",
-  "description": "Customer support assistant",
-  "system_prompt": "You are a helpful customer support agent for Acme Corp...",
-  "config": {
-    "model": "claude-sonnet-4-20250514",
-    "max_tokens": 1000,
-    "temperature": 0.7
-  }
-}
+# In another terminal
+curl -X POST http://localhost:5001/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What services do you offer?", "session_id": "test123"}'
 ```
 
-#### 3. Upload Documents (RAG Knowledge Base)
+Or visit: `http://localhost:5001/test` for the test page with widget
+
+---
+
+## 🧪 Testing
+
+### Run Test Suite
 
 ```bash
-POST /api/v1/documents/
-{
-  "bot_id": 1,
-  "title": "Product Documentation",
-  "content": "Our product features include...",
-  "source": "docs.acme.com/products"
-}
+# RAG system tests (51 tests)
+pytest tests/test_rag.py -v
+
+# RAG query tests
+python3 test_keystone_rag.py
+
+# Chat endpoint tests
+python3 test_keystone_chat_with_rag.py
 ```
 
-Documents are automatically embedded and indexed for semantic search.
-
-#### 4. Start a Conversation
+### Manual Testing
 
 ```bash
-POST /api/v1/conversations/
-{
-  "bot_id": 1,
-  "user_identifier": "user_12345",
-  "source": "web_widget",
-  "metadata": {"ip": "192.168.1.1"}
-}
+# Start bot
+cd bots/keystone-landscaping && python3 app.py &
 
-# Response:
-{
-  "id": 42,
-  "bot_id": 1,
-  "is_active": true,
-  "created_at": "2025-11-09T10:00:00Z"
-}
+# Test chat
+curl -X POST http://localhost:5001/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "How much does interlock cost?",
+    "session_id": "test"
+  }' | python3 -m json.tool
+
+# Check logs for: "RAG: Found X relevant chunks"
 ```
 
-#### 5. Chat with Bot
+---
+
+## 📚 Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [LLM-README.md](./LLM-README.md) | **START HERE** - Complete context for LLMs |
+| [FLASK_RAG_INTEGRATION.md](./FLASK_RAG_INTEGRATION.md) | RAG implementation details |
+| [DEPLOYMENT_VERIFICATION.md](./DEPLOYMENT_VERIFICATION.md) | Deployment report and verification |
+| [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) | Detailed codebase structure |
+| [QUICKSTART.md](./QUICKSTART.md) | Quick setup guide |
+
+---
+
+## 🔧 Common Tasks
+
+### Add Documents to Knowledge Base
 
 ```bash
-POST /api/v1/conversations/chat
-{
-  "conversation_id": 42,
-  "message": "What are your product features?"
-}
+# 1. Add .txt files to knowledge_base/keystone/
+echo "New content here..." > knowledge_base/keystone/new_doc.txt
 
-# Response:
-{
-  "conversation_id": 42,
-  "user_message": {
-    "id": 101,
-    "role": "user",
-    "content": "What are your product features?",
-    "created_at": "2025-11-09T10:01:00Z"
-  },
-  "bot_message": {
-    "id": 102,
-    "role": "assistant",
-    "content": "Based on our documentation, our product features include...",
-    "tokens_used": 245,
-    "created_at": "2025-11-09T10:01:02Z"
-  }
-}
+# 2. Update loader to include new file
+nano load_keystone_kb.py
+
+# 3. Run loader
+python3 load_keystone_kb.py
+
+# No bot restart needed - data is in database
 ```
 
-The RAG service automatically:
-1. Generates embedding for user message
-2. Searches for similar documents using pgvector
-3. Injects relevant context into Claude's system prompt
-4. Returns response with conversation history
-
-#### 6. Get Conversation History
+### Adjust RAG Settings
 
 ```bash
-GET /api/v1/conversations/42/messages
+# Edit configuration
+nano bots/keystone-landscaping/rag_config.py
+
+# Example: Lower similarity threshold for more results
+SIMILARITY_THRESHOLD = 0.6  # Was 0.7
+
+# Restart bot to apply
+cd bots/keystone-landscaping && python3 app.py
 ```
 
-### Widget Endpoint
+### Check Knowledge Base Status
+
+```python
+from shared.database import get_db_connection
+
+with get_db_connection() as conn:
+    with conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM documents WHERE bot_id = 1")
+        docs = cur.fetchone()['count']
+
+        cur.execute("SELECT COUNT(*) FROM document_chunks WHERE bot_id = 1")
+        chunks = cur.fetchone()['count']
+
+        print(f"Documents: {docs}, Chunks: {chunks}")
+```
+
+### View Bot Logs
 
 ```bash
-GET /api/v1/widget/chat-widget/1
+# Bot prints to stdout
+cd bots/keystone-landscaping
+python3 app.py
+
+# Look for:
+# "RAG: Found X relevant chunks" - RAG is working
+# "RAG: No relevant chunks found" - No matches (adjust threshold)
+# "Warning: RAG search failed" - API or DB issue
 ```
 
-Returns a simple HTML chat interface for testing bots.
+---
 
-## Database Schema
+## 📈 Performance & Costs
 
-### Key Tables
+### Response Times
 
-**clients**
-- `id`, `name`, `contact_email`, `subscription_plan`, `monthly_budget`, `is_active`
+- **Total:** 1.5-2.5 seconds average
+- RAG overhead: ~250-500ms
+  - Query embedding: 200-400ms (Voyage API)
+  - Vector search: 50-100ms (PostgreSQL)
+- Claude API: 1-2 seconds (main latency)
 
-**bots**
-- `id`, `client_id`, `name`, `description`, `system_prompt`, `config` (JSONB)
-- `is_active`, `deployment_status`, `created_at`, `updated_at`, `deployed_at`
+### API Costs
 
-**conversations**
-- `id`, `bot_id`, `user_identifier`, `source`, `metadata` (JSONB)
-- `is_active`, `started_at`, `ended_at`, `updated_at`
+**Voyage AI (voyage-3-lite):**
+- $0.06 per 1M tokens
+- ~100-200 tokens per query
+- **Cost: $0.000006-0.000012 per query**
 
-**messages**
-- `id`, `conversation_id`, `role` (user/assistant/system)
-- `content`, `tokens_used`, `created_at`
+**Claude Sonnet 4.5:**
+- Input: $3 per 1M tokens
+- Output: $15 per 1M tokens
+- Varies by conversation length
 
-**documents** (RAG)
-- `id`, `bot_id`, `title`, `content`, `source`
-- `embedding` (vector(1024)) - pgvector column
-- `created_at`, `updated_at`
+**Total cost per query:** ~$0.01-0.05 (mostly Claude)
 
-**usage**
-- `id`, `client_id`, `bot_id`, `conversation_id`
-- `event_type`, `tokens_used`, `cost`, `timestamp`
+---
 
-### Vector Search
+## 🐛 Troubleshooting
 
-Documents use pgvector with IVFFlat indexing for fast similarity search:
+### Bot Won't Start
 
-```sql
-CREATE INDEX documents_embedding_idx
-ON documents
-USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
+**Check:**
+1. Virtual environment activated?
+2. Dependencies installed? `pip install -r requirements.txt`
+3. `.env` file with API keys?
+4. PostgreSQL running? `sudo systemctl status postgresql`
+5. Database exists? `psql -U botfarm -d botfarm -c "\l"`
+
+### RAG Not Finding Context
+
+**Issue:** "No relevant chunks found" in logs
+
+**Fix:**
+```bash
+# 1. Verify KB loaded
+python3 -c "
+from shared.database import get_db_connection
+with get_db_connection() as conn:
+    with conn.cursor() as cur:
+        cur.execute('SELECT COUNT(*) FROM document_chunks WHERE bot_id = 1')
+        print(f\"Chunks: {cur.fetchone()['count']}\")
+"
+
+# 2. If 0 chunks, load KB
+python3 load_keystone_kb.py
+
+# 3. Lower similarity threshold
+nano bots/keystone-landscaping/rag_config.py
+# Set SIMILARITY_THRESHOLD = 0.6
 ```
 
-## How RAG Works
+### API Rate Limits (429 Errors)
 
-1. **Document Ingestion** (`/api/v1/documents/`)
-   - Upload text documents for a bot
-   - System generates embeddings via Anthropic API
-   - Stored in PostgreSQL with vector column
+**Behavior:** Bot continues without RAG (graceful)
 
-2. **Query Processing** (automatic in `/conversations/chat`)
-   - User sends message
-   - System generates query embedding
-   - pgvector performs cosine similarity search
-   - Retrieves top 3 most relevant documents
+**Fix:** Wait a few minutes or implement caching
 
-3. **Context Injection**
-   - Relevant documents appended to system prompt
-   - Sent to Claude API with conversation history
-   - Claude responds with context-aware answer
-
-4. **Response**
-   - Bot response saved to database
-   - Usage metrics logged for billing
-
-## Development Guide for AI Assistants
-
-### Code Navigation
-
-**Entry Point**: `my_bot_army/app/main.py:27-31`
-- FastAPI app initialization
-- CORS middleware
-- API router registration at `/api/v1`
-
-**Database Setup**: `my_bot_army/app/database.py:7-13,52-63`
-- Async SQLAlchemy engine
-- Connection pooling
-- Auto-creates tables on startup
-- Enables pgvector extension
-
-**Chat Logic**: `my_bot_army/app/api/v1/conversations.py:166-253`
-- Main `/conversations/chat` endpoint
-- Handles conversation state
-- Calls RAG service
-- Logs usage in background
-
-**RAG Implementation**: `my_bot_army/app/services/rag_service.py:11-102`
-- `search_similar_documents()` - vector similarity search
-- `get_context_for_query()` - retrieves and formats context
-
-**Claude Integration**: `my_bot_army/app/services/claude_service.py:14-84`
-- API wrapper for Anthropic Claude
-- Handles conversation history
-- Injects RAG context into system prompt
-
-### Common Tasks
-
-**Add new API endpoint**:
-1. Create route in `my_bot_army/app/api/v1/{module}.py`
-2. Register router in `my_bot_army/app/api/__init__.py`
-
-**Add new database model**:
-1. Create SQLAlchemy model in `my_bot_army/app/schemas/{name}.py`
-2. Create Pydantic model in `my_bot_army/app/models/{name}.py`
-3. Import in `my_bot_army/app/database.py:54` for auto-creation
-
-**Modify RAG behavior**:
-- Similarity threshold: `my_bot_army/app/services/rag_service.py:88`
-- Number of results: `my_bot_army/app/services/rag_service.py:91`
-- Context formatting: `my_bot_army/app/services/rag_service.py:98-102`
-
-**Change Claude model**:
-- Default model: `my_bot_army/app/services/claude_service.py:54`
-- Per-bot config: Set in bot's `config` JSONB field
-
-### Testing
+### Database Connection Errors
 
 ```bash
-# Run tests (when available)
-pytest
+# Check PostgreSQL status
+sudo systemctl status postgresql
 
-# Test API with curl
-curl http://localhost:8000/health
+# Test connection
+psql -U botfarm -d botfarm
 
-# Interactive API docs
-open http://localhost:8000/docs
+# Check .env has DB_PASSWORD
+cat .env | grep DB_PASSWORD
 ```
 
-## Production Deployment
+**See [LLM-README.md](./LLM-README.md) for complete troubleshooting guide**
 
-### Using systemd
+---
 
-Create `/etc/systemd/system/my-bot-army.service`:
+## 🚀 Deployment
+
+### Production Checklist
+
+- [ ] PostgreSQL with pgvector installed
+- [ ] Database migrations run
+- [ ] `.env` configured with production values
+- [ ] Knowledge base loaded
+- [ ] Tests passing
+- [ ] Bot starts without errors
+- [ ] RAG retrieving context correctly
+- [ ] Process manager (systemd/supervisor) configured
+- [ ] Nginx reverse proxy (optional but recommended)
+- [ ] SSL certificate (Let's Encrypt)
+- [ ] Monitoring and logging
+- [ ] Backup strategy
+
+### Process Manager (systemd example)
 
 ```ini
+# /etc/systemd/system/keystone-bot.service
 [Unit]
-Description=My Bot Army API
+Description=Keystone Hardscapes Bot
 After=network.target postgresql.service
 
 [Service]
-Type=notify
-User=botfarm
-WorkingDirectory=/opt/my-bot-army
-Environment="PATH=/opt/my-bot-army/venv/bin"
-ExecStart=/opt/my-bot-army/venv/bin/uvicorn my_bot_army.app.main:app \
-  --host 0.0.0.0 \
-  --port 8000 \
-  --workers 4 \
-  --log-level info
+Type=simple
+User=chip
+WorkingDirectory=/opt/bot-farm/bots/keystone-landscaping
+Environment="PATH=/opt/bot-farm/venv/bin"
+ExecStart=/opt/bot-farm/venv/bin/python3 app.py
 Restart=always
-RestartSec=3
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
@@ -462,138 +561,83 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable my-bot-army
-sudo systemctl start my-bot-army
-sudo systemctl status my-bot-army
-
-# View logs
-sudo journalctl -u my-bot-army -f
+sudo systemctl enable keystone-bot
+sudo systemctl start keystone-bot
+sudo systemctl status keystone-bot
 ```
-
-### Using Docker (Optional)
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY my_bot_army/ my_bot_army/
-COPY .env .env
-
-CMD ["uvicorn", "my_bot_army.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-### Using nginx (Reverse Proxy)
-
-```nginx
-server {
-    listen 80;
-    server_name api.mybotarmy.com;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-## Security Considerations
-
-⚠️ **Before Production**:
-
-1. **Add authentication**
-   - Implement JWT or API key middleware
-   - See FastAPI security docs
-
-2. **Rate limiting**
-   - Use slowapi or similar
-   - Prevent abuse
-
-3. **CORS configuration**
-   - Update `allow_origins` in `main.py:34-36`
-   - Don't use `["*"]` in production
-
-4. **Environment variables**
-   - Never commit `.env`
-   - Use secrets manager in production
-
-5. **Database security**
-   - Strong password
-   - Firewall rules
-   - SSL connections
-
-6. **Input validation**
-   - Already using Pydantic
-   - Add custom validators for content
-
-## Monitoring & Analytics
-
-### Built-in Metrics
-
-- **Usage tracking**: All API calls logged to `usage` table
-- **Token consumption**: Tracked per message
-- **Cost estimation**: Calculated in `conversations.py:301-303`
-- **Conversation analytics**: Duration, message count, user patterns
-
-### Health Endpoint
-
-```bash
-GET /health
-
-{
-  "status": "healthy",
-  "database": "connected",
-  "pgvector": "0.5.0"
-}
-```
-
-## Legacy Code
-
-The `bots/`, `admin/`, and `shared/` directories contain older Flask-based implementations. The current production system uses the FastAPI application in `my_bot_army/`. The legacy code may be useful for reference but is not actively maintained.
-
-## Troubleshooting
-
-**Database connection errors**:
-- Verify PostgreSQL is running: `sudo systemctl status postgresql`
-- Check connection string in `.env`
-- Ensure pgvector extension is installed
-
-**Import errors**:
-- Make sure virtual environment is activated
-- Reinstall dependencies: `pip install -r requirements.txt`
-
-**API errors**:
-- Check logs: `journalctl -u my-bot-army -f`
-- Verify API key is set
-- Test health endpoint first
-
-**Vector search not working**:
-- Ensure pgvector extension is enabled
-- Check documents have embeddings
-- Verify index exists
-
-## Contributing
-
-This is a personal project, but suggestions and feedback are welcome via issues.
-
-## License
-
-MIT License - See LICENSE file for details.
-
-## Resources
-
-- **FastAPI**: https://fastapi.tiangolo.com/
-- **SQLAlchemy 2.0**: https://docs.sqlalchemy.org/en/20/
-- **pgvector**: https://github.com/pgvector/pgvector
-- **Anthropic API**: https://docs.anthropic.com/
-- **Claude Code**: https://docs.claude.com/en/docs/claude-code
 
 ---
 
-**Built with Claude Code** | **Powered by Claude Sonnet 4.5**
+## 🤝 Contributing
+
+### Development Workflow
+
+1. **Create feature branch**
+   ```bash
+   git checkout -b feature/your-feature
+   ```
+
+2. **Make changes and test**
+   ```bash
+   pytest tests/test_rag.py -v
+   python3 test_keystone_chat_with_rag.py
+   ```
+
+3. **Commit with descriptive message**
+   ```bash
+   git commit -m "Add feature: description
+
+   - Detail 1
+   - Detail 2
+
+   🤖 Generated with Claude Code
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+
+4. **Push and create PR**
+   ```bash
+   git push origin feature/your-feature
+   ```
+
+### Code Style
+
+- Follow PEP 8 for Python
+- Use type hints where appropriate
+- Write docstrings for functions
+- Add tests for new features
+- Update documentation
+
+---
+
+## 📝 License
+
+[Add your license here]
+
+---
+
+## 🙋 Support
+
+- **Issues:** [GitHub Issues](https://github.com/evgeny-vlasov/my-bot-army/issues)
+- **Documentation:** See files in `/docs` and root documentation files
+- **LLM Context:** [LLM-README.md](./LLM-README.md) for complete project understanding
+
+---
+
+## 📊 Project Status
+
+**Current Version:** 1.0 (Production)
+**Last Updated:** November 19, 2025
+**Active Bots:** 1 (Keystone Hardscapes)
+**RAG Status:** ✅ Fully integrated and operational
+**Test Coverage:** 51 RAG tests passing
+**Knowledge Base:** 2 documents, 3 chunks loaded
+
+**Recent Milestones:**
+- ✅ RAG system deployed (Nov 18, 2025)
+- ✅ Schema alignment completed (Nov 19, 2025)
+- ✅ Integration verified (Nov 19, 2025)
+- ✅ Documentation complete (Nov 19, 2025)
+
+---
+
+**🤖 For LLMs:** Remember to read [LLM-README.md](./LLM-README.md) for complete context!

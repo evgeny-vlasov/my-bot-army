@@ -20,15 +20,25 @@ Welcome to your bot army! This guide will help you navigate all the documentatio
 
 ## 📖 Documentation Files
 
+### Core Documentation
+
 | File | Purpose | When to Use |
 |------|---------|-------------|
-| **README.md** | Project overview and features | First read, reference |
+| **LLM-README.md** 🤖 | Complete context for Claude/LLMs | **START HERE** for AI assistants |
+| **README.md** | Project overview and features | First read for humans, reference |
 | **QUICKSTART.md** | Get up and running fast | When you want to skip details |
 | **SETUP.md** | Detailed server setup | Setting up Debian server |
 | **DEPLOYMENT.md** | Complete deployment workflow | Step-by-step production deploy |
 | **CLAUDE_CODE_PROMPT.md** | Instructions for Claude Code | Building the actual code |
 | **PROJECT_STRUCTURE.md** | File structure and commands | Reference while working |
-| **LICENSE** | MIT license terms | Legal reference |
+
+### Technical Documentation (RAG System)
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| **FLASK_RAG_INTEGRATION.md** | RAG implementation details | Understanding RAG integration |
+| **DEPLOYMENT_VERIFICATION.md** | Deployment report | Verifying RAG deployment |
+| **RAG_INTEGRATION_README.md** | RAG overview | Quick RAG reference |
 
 ## 🗂️ Configuration Files
 
