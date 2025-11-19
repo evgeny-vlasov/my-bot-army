@@ -105,22 +105,24 @@ def main():
                 print(f"\n✗ ERROR: Bot with id={BOT_ID} not found in database")
                 sys.exit(1)
             
-            bot_id_str = bot[0] if isinstance(bot, tuple) else bot['bot_id']
-            bot_name = bot[1] if isinstance(bot, tuple) else bot['bot_name']
-            
+            bot_id_str = bot['bot_id'] if isinstance(bot, dict) else bot[0]
+            bot_name = bot['bot_name'] if isinstance(bot, dict) else bot[1]
+
             # Get document count
             cur.execute("""
                 SELECT COUNT(*) FROM documents WHERE bot_id = %s
-            """, (bot_id_str,))
-            doc_count = cur.fetchone()[0]
-            
+            """, (BOT_ID,))
+            doc_count = cur.fetchone()
+            doc_count = doc_count['count'] if isinstance(doc_count, dict) else doc_count[0]
+
             # Get chunk count
             cur.execute("""
                 SELECT COUNT(*) FROM document_chunks dc
                 JOIN documents d ON dc.document_id = d.id
                 WHERE d.bot_id = %s
-            """, (bot_id_str,))
-            chunk_count = cur.fetchone()[0]
+            """, (BOT_ID,))
+            chunk_count = cur.fetchone()
+            chunk_count = chunk_count['count'] if isinstance(chunk_count, dict) else chunk_count[0]
     
     print()
     print(f"Bot: {bot_name} ({bot_id_str})")

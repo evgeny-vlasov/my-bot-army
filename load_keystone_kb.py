@@ -25,7 +25,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from shared.database import get_db_connection
-from shared.rag_helpers import process_document
+from shared.rag import process_document
 
 # Configuration
 BOT_ID = 1  # Keystone Hardscapes bot
@@ -73,16 +73,17 @@ def main():
     # Check bot exists
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT bot_id, bot_name FROM bots WHERE id = %s", (BOT_ID,))
+            cur.execute("SELECT id, bot_id, bot_name FROM bots WHERE id = %s", (BOT_ID,))
             bot = cur.fetchone()
-            
+
             if not bot:
                 print(f"ERROR: Bot with id={BOT_ID} not found in database")
                 sys.exit(1)
-            
-            bot_id_str = bot[0] if isinstance(bot, tuple) else bot['bot_id']
-            bot_name = bot[1] if isinstance(bot, tuple) else bot['bot_name']
-            
+
+            bot_id_int = bot['id']
+            bot_id_str = bot['bot_id']
+            bot_name = bot['bot_name']
+
             print(f"Bot: {bot_name} ({bot_id_str})")
             print()
     
@@ -122,14 +123,14 @@ def main():
                         VALUES (%s, %s, %s, %s, %s)
                         RETURNING id
                     """, (
-                        bot_id_str,
+                        bot_id_int,
                         file_info["title"],
                         content,
                         file_info["source"],
                         '{"file_name": "' + file_path.name + '"}'
                     ))
-                    document_id = cur.fetchone()[0]
-            
+                    document_id = cur.fetchone()['id']
+
             print(f"      Document ID: {document_id}")
         except Exception as e:
             print(f"      ✗ ERROR inserting document: {e}")

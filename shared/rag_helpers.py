@@ -39,10 +39,10 @@ import logging
 import json
 from typing import Optional
 
-from .voyage_client import VoyageClient
-from .chunker import TextChunker
-from .embedder import DocumentEmbedder
-from .retriever import RAGRetriever
+from shared.rag.voyage_client import VoyageClient
+from shared.rag.chunker import TextChunker
+from shared.rag.embedder import DocumentEmbedder
+from shared.rag.retriever import RAGRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -198,13 +198,13 @@ def process_document(
 
                 cur.execute("""
                     INSERT INTO document_chunks
-                        (document_id, chunk_index, content, token_count, embedding, metadata)
+                        (document_id, bot_id, chunk_index, chunk_text, embedding, metadata)
                     VALUES (%s, %s, %s, %s, %s::vector, %s)
                 """, (
                     document_id,
+                    bot_id,
                     chunk['chunk_index'],
                     chunk['content'],
-                    chunk['token_count'],
                     embedding_str,
                     metadata_json
                 ))

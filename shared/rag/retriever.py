@@ -247,6 +247,13 @@ class RAGRetriever:
 
         with self.db.get_connection() as conn:
             with conn.cursor() as cur:
+                # First convert bot_id string to integer ID
+                cur.execute("SELECT id FROM bots WHERE bot_id = %s", (bot_id,))
+                bot_row = cur.fetchone()
+                if not bot_row:
+                    raise ValueError(f"Bot {bot_id} not found")
+                bot_id_int = bot_row['id'] if isinstance(bot_row, dict) else bot_row[0]
+
                 # Vector similarity query using <=> (cosine distance) operator
                 cur.execute("""
                     SELECT
@@ -254,8 +261,7 @@ class RAGRetriever:
                         dc.document_id,
                         d.title as document_title,
                         dc.chunk_index,
-                        dc.content,
-                        dc.token_count,
+                        dc.chunk_text,
                         d.source,
                         1 - (dc.embedding <=> %s::vector) as similarity
                     FROM document_chunks dc
@@ -267,7 +273,7 @@ class RAGRetriever:
                     LIMIT %s
                 """, (
                     embedding_str,
-                    bot_id,
+                    bot_id_int,
                     embedding_str,
                     distance_threshold,
                     embedding_str,
@@ -276,18 +282,22 @@ class RAGRetriever:
 
                 rows = cur.fetchall()
 
-                # Convert rows to dictionaries
+                # Convert rows to dictionaries (using RealDictCursor)
                 results = []
                 for row in rows:
+                    # Estimate token count from chunk text (roughly 4 chars per token)
+                    content = row['chunk_text'] if isinstance(row, dict) else row[4]
+                    estimated_tokens = len(content) // 4 if content else 0
+
                     result = {
-                        'chunk_id': row[0],
-                        'document_id': row[1],
-                        'document_title': row[2] or 'Untitled',
-                        'chunk_index': row[3],
-                        'content': row[4],
-                        'token_count': row[5] or 0,
-                        'source': row[6] or '',
-                        'similarity': float(row[7]) if row[7] is not None else 0.0
+                        'chunk_id': row['chunk_id'] if isinstance(row, dict) else row[0],
+                        'document_id': row['document_id'] if isinstance(row, dict) else row[1],
+                        'document_title': (row['document_title'] if isinstance(row, dict) else row[2]) or 'Untitled',
+                        'chunk_index': row['chunk_index'] if isinstance(row, dict) else row[3],
+                        'content': content,
+                        'token_count': estimated_tokens,
+                        'source': (row['source'] if isinstance(row, dict) else row[5]) or '',
+                        'similarity': float(row['similarity'] if isinstance(row, dict) else row[6]) if (row.get('similarity') if isinstance(row, dict) else row[6]) is not None else 0.0
                     }
                     results.append(result)
 
@@ -307,6 +317,13 @@ class RAGRetriever:
         """
         with self.db.get_connection() as conn:
             with conn.cursor() as cur:
+                # First convert bot_id string to integer ID
+                cur.execute("SELECT id FROM bots WHERE bot_id = %s", (bot_id,))
+                bot_row = cur.fetchone()
+                if not bot_row:
+                    raise ValueError(f"Bot {bot_id} not found")
+                bot_id_int = bot_row['id'] if isinstance(bot_row, dict) else bot_row[0]
+
                 cur.execute("""
                     SELECT
                         d.id,
@@ -315,26 +332,26 @@ class RAGRetriever:
                         d.source,
                         d.created_at,
                         COUNT(dc.id) as chunk_count,
-                        SUM(dc.token_count) as total_tokens
+                        SUM(LENGTH(dc.chunk_text) / 4) as total_tokens
                     FROM documents d
                     LEFT JOIN document_chunks dc ON d.id = dc.document_id
                     WHERE d.bot_id = %s
                     GROUP BY d.id
                     ORDER BY d.created_at DESC
-                """, (bot_id,))
+                """, (bot_id_int,))
 
                 rows = cur.fetchall()
 
                 documents = []
                 for row in rows:
                     doc = {
-                        'id': row[0],
-                        'bot_id': row[1],
-                        'title': row[2],
-                        'source': row[3],
-                        'created_at': row[4],
-                        'chunk_count': row[5] or 0,
-                        'total_tokens': row[6] or 0
+                        'id': row['id'] if isinstance(row, dict) else row[0],
+                        'bot_id': row['bot_id'] if isinstance(row, dict) else row[1],
+                        'title': row['title'] if isinstance(row, dict) else row[2],
+                        'source': row['source'] if isinstance(row, dict) else row[3],
+                        'created_at': row['created_at'] if isinstance(row, dict) else row[4],
+                        'chunk_count': (row['chunk_count'] if isinstance(row, dict) else row[5]) or 0,
+                        'total_tokens': int((row['total_tokens'] if isinstance(row, dict) else row[6]) or 0)
                     }
                     documents.append(doc)
 
