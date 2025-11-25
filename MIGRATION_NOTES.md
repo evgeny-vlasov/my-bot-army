@@ -411,9 +411,9 @@ ExecStart=/opt/bot-farm/venv/bin/gunicorn --bind 0.0.0.0:5001 --workers 4 app:ap
 
 ### Deployment
 
-- [ ] Update requirements.txt (add gunicorn, remove uvicorn)
-- [ ] Update systemd service files
-- [ ] Test Gunicorn configuration
+- [x] Update requirements.txt (add gunicorn, document legacy FastAPI deps)
+- [x] Document systemd service examples (in README.md)
+- [x] Document Gunicorn configuration (in README.md and ARCHITECTURE.md)
 - [ ] Update Nginx/reverse proxy config (if applicable)
 - [ ] Update monitoring and logging
 - [ ] Deploy to staging
