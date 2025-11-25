@@ -4,9 +4,12 @@
 
 A scalable multi-tenant platform for deploying AI chatbots powered by Claude, with RAG (Retrieval-Augmented Generation) capabilities for knowledge-base enhanced responses.
 
+**Architecture:** Flask-based web framework (forked from FastAPI original)
 **Current Status:** ✅ Production-Ready
-**Active System:** Flask-based Keystone Hardscapes Bot with full RAG integration
-**Last Updated:** November 19, 2025
+**Active System:** Keystone Hardscapes Bot with full RAG integration
+**Last Updated:** November 25, 2025
+
+> **Note:** This project has been migrated from FastAPI to Flask to integrate with the WebGarden Flask infrastructure while maintaining all functionality and API compatibility.
 
 ---
 
@@ -51,32 +54,28 @@ That document contains:
 
 ## 📊 Project Overview
 
-### Two Systems
+### Flask-Based Bot Platform
 
-This repository contains two bot systems:
+A production-ready platform for deploying AI chatbots with enterprise features:
 
-#### 1. **Active: Flask-Based Bots** (`bots/` directory) ⭐
-
-**Status:** Production, actively used
 **Current Bot:** Keystone Hardscapes landscaping assistant
-**Framework:** Flask + Claude Sonnet 4.5
+**Framework:** Flask 3.x + Gunicorn
+**LLM:** Claude Sonnet 4.5 via Anthropic API
 **RAG:** Fully integrated with Voyage AI embeddings + pgvector
 
-**Location:** `/opt/bot-farm/bots/keystone-landscaping/`
+**Deployment Location:** `/opt/bot-farm/bots/keystone-landscaping/`
 
-**Features:**
+**Core Features:**
 - ✅ RAG-enhanced responses from knowledge base
 - ✅ Real-time chat with Claude Sonnet 4.5
 - ✅ Conversation history and logging
 - ✅ Embeddable JavaScript widget
 - ✅ Usage tracking and cost monitoring
 - ✅ Production-ready error handling
+- ✅ Multi-tenant architecture
+- ✅ RESTful API design
 
-#### 2. **Legacy: FastAPI System** (`my_bot_army/` directory)
-
-**Status:** Prototype/reference implementation
-**Framework:** FastAPI (async)
-**Note:** Not currently deployed, may be used for future scaling
+**Integration:** Designed to work seamlessly with WebGarden Flask infrastructure (Flask + SQLAlchemy + PostgreSQL + Gunicorn pattern)
 
 ---
 
@@ -84,13 +83,26 @@ This repository contains two bot systems:
 
 ### Technology Stack
 
-**Production (Keystone Bot):**
-- **Framework:** Flask 3.x
+**Web Framework:**
+- **Flask 3.x** - Synchronous web framework
+- **Gunicorn** - Production WSGI server
+- **Flask Blueprints** - Modular route organization
+- **Flask error handlers** - Centralized error handling
+
+**AI & Embeddings:**
 - **LLM:** Claude Sonnet 4.5 (Anthropic API)
 - **Embeddings:** Voyage AI voyage-3-lite (512D, $0.06/1M tokens)
-- **Database:** PostgreSQL 15+ with pgvector extension
-- **Vector Search:** pgvector (cosine similarity)
-- **Runtime:** Python 3.11
+- **HTTP Client:** `requests` library for API calls
+
+**Database & Vector Search:**
+- **PostgreSQL 15+** with pgvector extension
+- **Flask-SQLAlchemy** (synchronous ORM)
+- **pgvector** - Cosine similarity vector search
+- **psycopg2** - PostgreSQL adapter
+
+**Runtime:**
+- **Python 3.11+**
+- **Synchronous architecture** (no async/await)
 
 **Key Components:**
 ```
@@ -124,7 +136,7 @@ This repository contains two bot systems:
 
 ```
 /opt/bot-farm/
-├── bots/                              # Flask-based bots ⭐ ACTIVE
+├── bots/                              # Flask bot instances
 │   └── keystone-landscaping/          # Production Keystone bot
 │       ├── app.py                     # Main Flask application
 │       ├── config.py                  # Configuration
@@ -133,26 +145,26 @@ This repository contains two bot systems:
 │       └── knowledge_base/            # KB source files
 │
 ├── shared/                            # Shared modules
-│   ├── database.py                    # DB functions
-│   ├── claude_client.py               # Claude API wrapper
+│   ├── database.py                    # DB functions (synchronous)
+│   ├── claude_client.py               # Claude API wrapper (requests library)
 │   ├── rag_helpers.py                 # RAG helper functions
 │   ├── rag/                           # RAG OOP components
 │   │   ├── voyage_client.py           # Voyage AI integration
-│   │   ├── retriever.py               # Vector search
+│   │   ├── retriever.py               # Vector search (pgvector)
 │   │   ├── chunker.py                 # Text chunking
 │   │   └── embedder.py                # Document processing
 │   └── widget/                        # JavaScript chat widget
 │
 ├── admin/                             # Admin dashboard (Flask)
-├── my_bot_army/                       # FastAPI system (legacy)
 ├── tests/                             # Test suites
-├── migrations/                        # Database migrations
+├── migrations/                        # Database migrations (SQL)
 ├── knowledge_base/                    # Source KB files
 ├── scripts/                           # Utility scripts
 │
 ├── LLM-README.md                      # 📖 Context guide for LLMs
 ├── FLASK_RAG_INTEGRATION.md           # RAG integration docs
 ├── DEPLOYMENT_VERIFICATION.md         # Deployment report
+├── MIGRATION_NOTES.md                 # FastAPI → Flask migration guide
 └── requirements.txt                   # Python dependencies
 ```
 
@@ -370,6 +382,8 @@ curl -X POST http://localhost:5001/api/chat \
 | Document | Purpose |
 |----------|---------|
 | [LLM-README.md](./LLM-README.md) | **START HERE** - Complete context for LLMs |
+| [MIGRATION_NOTES.md](./MIGRATION_NOTES.md) | FastAPI → Flask migration guide |
+| [CHANGELOG.md](./CHANGELOG.md) | Version history and changes |
 | [FLASK_RAG_INTEGRATION.md](./FLASK_RAG_INTEGRATION.md) | RAG implementation details |
 | [DEPLOYMENT_VERIFICATION.md](./DEPLOYMENT_VERIFICATION.md) | Deployment report and verification |
 | [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) | Detailed codebase structure |
@@ -538,8 +552,28 @@ cat .env | grep DB_PASSWORD
 - [ ] Monitoring and logging
 - [ ] Backup strategy
 
+### Production Deployment with Gunicorn
+
+**Development mode (Flask built-in server):**
+```bash
+cd /opt/bot-farm/bots/keystone-landscaping
+python3 app.py
+```
+
+**Production mode (Gunicorn WSGI server):**
+```bash
+cd /opt/bot-farm/bots/keystone-landscaping
+gunicorn --bind 0.0.0.0:5001 --workers 4 --timeout 120 app:app
+```
+
+**Gunicorn configuration options:**
+- `--workers 4` - Number of worker processes (2 × CPU cores)
+- `--timeout 120` - Request timeout (Claude API can be slow)
+- `--bind 0.0.0.0:5001` - Listen on all interfaces, port 5001
+
 ### Process Manager (systemd example)
 
+**Option 1: Development mode (Flask built-in)**
 ```ini
 # /etc/systemd/system/keystone-bot.service
 [Unit]
@@ -552,6 +586,32 @@ User=chip
 WorkingDirectory=/opt/bot-farm/bots/keystone-landscaping
 Environment="PATH=/opt/bot-farm/venv/bin"
 ExecStart=/opt/bot-farm/venv/bin/python3 app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Option 2: Production mode (Gunicorn - RECOMMENDED)**
+```ini
+# /etc/systemd/system/keystone-bot.service
+[Unit]
+Description=Keystone Hardscapes Bot (Gunicorn)
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=chip
+Group=www-data
+WorkingDirectory=/opt/bot-farm/bots/keystone-landscaping
+Environment="PATH=/opt/bot-farm/venv/bin"
+ExecStart=/opt/bot-farm/venv/bin/gunicorn --bind 0.0.0.0:5001 \
+          --workers 4 --timeout 120 app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
 Restart=always
 RestartSec=10
 
@@ -625,18 +685,20 @@ sudo systemctl status keystone-bot
 
 ## 📊 Project Status
 
-**Current Version:** 1.0 (Production)
-**Last Updated:** November 19, 2025
+**Current Version:** 2.0 (Flask Migration)
+**Architecture:** Flask + Gunicorn (migrated from FastAPI)
+**Last Updated:** November 25, 2025
 **Active Bots:** 1 (Keystone Hardscapes)
 **RAG Status:** ✅ Fully integrated and operational
 **Test Coverage:** 51 RAG tests passing
 **Knowledge Base:** 2 documents, 3 chunks loaded
 
 **Recent Milestones:**
+- ✅ **Flask migration complete** (Nov 25, 2025)
+- ✅ Documentation updated to Flask (Nov 25, 2025)
 - ✅ RAG system deployed (Nov 18, 2025)
 - ✅ Schema alignment completed (Nov 19, 2025)
 - ✅ Integration verified (Nov 19, 2025)
-- ✅ Documentation complete (Nov 19, 2025)
 
 ---
 
