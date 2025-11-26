@@ -166,7 +166,11 @@ class DocumentEmbedder:
                     if not row:
                         raise ValueError(f"Document {document_id} not found")
 
-                    bot_id, title, content, source, metadata_json = row
+                    bot_id = row['bot_id']
+                    title = row['title']
+                    content = row['content']
+                    source = row['source']
+                    metadata_json = row['metadata']
 
             logger.info(f"Found document: '{title}'")
 
@@ -272,14 +276,14 @@ class DocumentEmbedder:
                         return None
 
                     return {
-                        'id': row[0],
-                        'bot_id': row[1],
-                        'title': row[2],
-                        'source': row[3],
-                        'created_at': row[4],
-                        'updated_at': row[5],
-                        'chunk_count': row[6] or 0,
-                        'total_tokens': row[7] or 0
+                        'id': row['id'],
+                        'bot_id': row['bot_id'],
+                        'title': row['title'],
+                        'source': row['source'],
+                        'created_at': row['created_at'],
+                        'updated_at': row['updated_at'],
+                        'chunk_count': row['chunk_count'] or 0,
+                        'total_tokens': row['total_tokens'] or 0
                     }
 
         except Exception as e:
@@ -322,7 +326,7 @@ class DocumentEmbedder:
                     datetime.now()
                 ))
 
-                document_id = cur.fetchone()[0]
+                document_id = cur.fetchone()['id']
 
         return document_id
 
