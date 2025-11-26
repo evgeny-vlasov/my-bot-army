@@ -37,9 +37,13 @@ class DocumentEmbedder:
         db = DatabaseConnection()
         embedder = DocumentEmbedder(voyage, chunker, db)
 
+        # Look up numeric bot ID from string bot_id
+        # (In practice, use the lookup function from add_document.py)
+        # bot_id = 1  # Numeric ID from bots.id column
+
         # Process a document
         doc_id = embedder.process_document(
-            bot_id="keystone-landscaping",
+            bot_id=1,  # Use numeric bot ID, not string!
             title="Services Overview",
             content="We offer landscaping services...",
             source="manual_upload"
@@ -63,7 +67,7 @@ class DocumentEmbedder:
 
     def process_document(
         self,
-        bot_id: str,
+        bot_id: int,
         title: str,
         content: str,
         source: str = "manual_upload",
@@ -73,7 +77,7 @@ class DocumentEmbedder:
         Process and store a document with embeddings.
 
         Args:
-            bot_id: Bot identifier (e.g., "keystone-landscaping")
+            bot_id: Numeric bot ID (bots.id) - NOT the string bot_id!
             title: Document title
             content: Full document text
             source: Source identifier (e.g., "uploaded_pdf", "website", "manual")
@@ -284,7 +288,7 @@ class DocumentEmbedder:
 
     def _store_document(
         self,
-        bot_id: str,
+        bot_id: int,
         title: str,
         content: str,
         source: str,
@@ -292,6 +296,9 @@ class DocumentEmbedder:
     ) -> int:
         """
         Store document in database.
+
+        Args:
+            bot_id: Numeric bot ID (bots.id)
 
         Returns:
             document_id
@@ -412,8 +419,10 @@ def test_embedder():
     """
 
     # Process document
+    # NOTE: In real usage, look up numeric bot ID from bots table
+    # For test purposes, using 1 (assumes bot with id=1 exists)
     doc_id = embedder.process_document(
-        bot_id="keystone-landscaping",
+        bot_id=1,  # Use numeric bot ID
         title="Test Services Document",
         content=sample_content,
         source="test",

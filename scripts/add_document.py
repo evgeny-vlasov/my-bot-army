@@ -112,6 +112,52 @@ def parse_metadata(metadata_str: str) -> dict:
         raise ValueError(f"Invalid JSON in metadata: {e}")
 
 
+def get_available_bot_ids(conn) -> list:
+    """
+    Get list of available bot_id strings from database.
+
+    Args:
+        conn: Database connection
+
+    Returns:
+        List of bot_id strings
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT bot_id FROM bots ORDER BY bot_id")
+        return [row['bot_id'] for row in cur.fetchall()]
+
+
+def get_bot_numeric_id(bot_id_string: str, conn) -> int:
+    """
+    Look up numeric bot.id from string bots.bot_id.
+
+    Args:
+        bot_id_string: String bot identifier (e.g., 'therapist', 'keystone-landscaping')
+        conn: Database connection
+
+    Returns:
+        Numeric bot ID (bots.id)
+
+    Raises:
+        ValueError: If bot not found in database
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id FROM bots WHERE bot_id = %s",
+            (bot_id_string,)
+        )
+        result = cur.fetchone()
+
+        if not result:
+            available_bots = get_available_bot_ids(conn)
+            raise ValueError(
+                f"Bot '{bot_id_string}' not found in database. "
+                f"Available bots: {', '.join(available_bots)}"
+            )
+
+        return result['id']
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Add a document to a bot\'s knowledge base',
@@ -227,9 +273,21 @@ Examples:
         # Add file_name to metadata
         metadata['file_name'] = Path(file_path).name
 
+        # Look up numeric bot ID
+        print(f"\n4. Looking up bot in database...")
+        db = DatabaseConnection()
+
+        with db.get_connection() as conn:
+            try:
+                numeric_bot_id = get_bot_numeric_id(args.bot_id, conn)
+                print(f"   ✓ Bot found: '{args.bot_id}' (numeric ID: {numeric_bot_id})")
+            except ValueError as e:
+                print(f"\n✗ ERROR: {e}")
+                return 1
+
         if args.dry_run:
-            print(f"\n4. DRY RUN - Would process document with:")
-            print(f"   Bot ID: {args.bot_id}")
+            print(f"\n5. DRY RUN - Would process document with:")
+            print(f"   Bot ID: '{args.bot_id}' (numeric ID: {numeric_bot_id})")
             print(f"   Title: {args.title}")
             print(f"   Source: {args.source}")
             print(f"   Chunk size: {args.chunk_size} tokens")
@@ -249,7 +307,7 @@ Examples:
             return 0
 
         # Initialize RAG components
-        print(f"\n4. Initializing RAG components...")
+        print(f"\n5. Initializing RAG components...")
         voyage_client = VoyageClient(model=args.model)
         print(f"   ✓ Voyage client initialized (model: {args.model})")
 
@@ -259,20 +317,17 @@ Examples:
         )
         print(f"   ✓ Text chunker initialized")
 
-        db = DatabaseConnection()
-        print(f"   ✓ Database connection established")
-
         embedder = DocumentEmbedder(voyage_client, chunker, db)
         print(f"   ✓ Document embedder initialized")
 
         # Process document
-        print(f"\n5. Processing document...")
-        print(f"   Bot ID: {args.bot_id}")
+        print(f"\n6. Processing document...")
+        print(f"   Bot ID: '{args.bot_id}' (numeric ID: {numeric_bot_id})")
         print(f"   Title: {args.title}")
         print(f"   Source: {args.source}")
 
         doc_id = embedder.process_document(
-            bot_id=args.bot_id,
+            bot_id=numeric_bot_id,
             title=args.title,
             content=content,
             source=args.source,
@@ -284,7 +339,7 @@ Examples:
         # Get document info
         doc_info = embedder.get_document_info(doc_id)
 
-        print(f"\n6. Document successfully added!")
+        print(f"\n7. Document successfully added!")
         print(f"   Document ID: {doc_info['id']}")
         print(f"   Chunks created: {doc_info['chunk_count']}")
         print(f"   Total tokens: ~{doc_info['total_tokens']}")
