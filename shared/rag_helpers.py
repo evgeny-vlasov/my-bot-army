@@ -136,7 +136,7 @@ def process_document(
             row = cur.fetchone()
             if not row:
                 raise ValueError(f"Bot with id={bot_id} not found")
-            bot_id_str = row[0] if isinstance(row, tuple) else row['bot_id']
+            bot_id_str = row['bot_id']  # RealDictCursor always returns dict
 
         # Get document information
         with conn.cursor() as cur:
@@ -149,9 +149,9 @@ def process_document(
             if not doc_row:
                 raise ValueError(f"Document {document_id} not found in database")
 
-            title = doc_row[0] if isinstance(doc_row, tuple) else doc_row['title']
-            source = doc_row[1] if isinstance(doc_row, tuple) else doc_row.get('source', 'unknown')
-            metadata = doc_row[2] if isinstance(doc_row, tuple) else doc_row.get('metadata', {})
+            title = doc_row['title']
+            source = doc_row.get('source', 'unknown')
+            metadata = doc_row.get('metadata', {})
 
         logger.info(f"Found document: '{title}' (source: {source})")
 
@@ -281,7 +281,7 @@ def rag_query(
             row = cur.fetchone()
             if not row:
                 raise ValueError(f"Bot with id={bot_id} not found")
-            bot_id_str = row[0] if isinstance(row, tuple) else row['bot_id']
+            bot_id_str = row['bot_id']  # RealDictCursor always returns dict
 
         # Initialize OOP components
         voyage_client = VoyageClient(api_key=voyage_api_key)
