@@ -157,7 +157,7 @@ def reindex_bot(
                             (doc['id'],)
                         )
                         row = cur.fetchone()
-                        content = row[0] if row else ""
+                        content = row['content'] if row else ""
 
                 # Estimate new chunks
                 chunks = chunker.chunk_text(content)
