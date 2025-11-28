@@ -525,7 +525,210 @@ If you encounter issues during migration or have questions about the Flask imple
 
 ---
 
-**Last Updated:** November 25, 2025
+**Last Updated:** November 28, 2025
 **Migration Status:** ✅ Complete
 **Flask Version:** 3.x
 **Python Version:** 3.11+
+
+---
+
+## 🔧 Database Schema Corrections (November 28, 2025)
+
+### Issue
+
+The embedder.py code was initially written for a different database schema than what was deployed in production. This caused multiple runtime errors during document ingestion.
+
+### Root Cause
+
+The code referenced columns that didn't exist in the production `document_chunks` table and was missing required foreign key fields.
+
+### Schema Mismatches Found
+
+#### 1. Missing `bot_id` Foreign Key ❌
+**Problem:** `document_chunks` table requires `bot_id` (FK to `bots.id`), but the INSERT statement omitted it.
+
+**Location:** `shared/rag/embedder.py:361-372` (_store_chunks method)
+
+**Fix:** Added `bot_id` parameter to `_store_chunks()` method and included it in INSERT statement.
+
+#### 2. Wrong Column Name: `content` → `chunk_text` ❌
+**Problem:** INSERT referenced column `content`, but production table uses `chunk_text`.
+
+**Location:** `shared/rag/embedder.py:361-372` (_store_chunks method)
+
+**Fix:** Updated INSERT statement to use `chunk_text` column name.
+
+#### 3. Non-existent `token_count` Column ❌
+**Problem:** Code tried to INSERT `token_count` value, but this column doesn't exist in production.
+
+**Location:**
+- `shared/rag/embedder.py:361-372` (_store_chunks method)
+- `shared/rag/embedder.py:262` (get_document_info method)
+
+**Fix:**
+- Removed `token_count` from INSERT statement
+- Removed `SUM(dc.token_count)` from get_document_info query
+- Note: Chunker still calculates token_count (for logging/metadata), but we don't store it
+
+### Production Schema Reference
+
+```sql
+-- document_chunks table (actual production schema)
+Table "public.document_chunks"
+   Column    |            Type
+-------------+-----------------------------
+ id          | integer (PK)
+ document_id | integer (FK to documents.id)
+ bot_id      | integer (FK to bots.id)      ← Required!
+ chunk_text  | text                         ← Not 'content'!
+ chunk_index | integer
+ embedding   | vector(512)
+ metadata    | jsonb                        ← Not 'chunk_metadata'
+ created_at  | timestamp
+
+NOTE: No 'token_count' column exists!
+```
+
+### Code Changes Made
+
+#### 1. Updated `_store_chunks()` signature
+```python
+# BEFORE
+def _store_chunks(
+    self,
+    document_id: int,
+    chunks: List[Dict],
+    embeddings: List[List[float]]
+) -> None:
+
+# AFTER
+def _store_chunks(
+    self,
+    document_id: int,
+    bot_id: int,  # ← Added required parameter
+    chunks: List[Dict],
+    embeddings: List[List[float]]
+) -> None:
+```
+
+#### 2. Fixed INSERT statement
+```python
+# BEFORE (WRONG)
+INSERT INTO document_chunks
+    (document_id, chunk_index, content, token_count, embedding, metadata)
+VALUES (%s, %s, %s, %s, %s::vector, %s)
+
+# AFTER (CORRECT)
+INSERT INTO document_chunks
+    (document_id, bot_id, chunk_index, chunk_text, embedding, metadata)
+VALUES (%s, %s, %s, %s, %s::vector, %s)
+```
+
+#### 3. Updated INSERT values tuple
+```python
+# BEFORE (WRONG)
+(
+    document_id,
+    chunk['chunk_index'],
+    chunk['content'],
+    chunk['token_count'],  # ← Column doesn't exist!
+    embedding_str,
+    metadata_json
+)
+
+# AFTER (CORRECT)
+(
+    document_id,
+    bot_id,  # ← Added required FK
+    chunk['chunk_index'],
+    chunk['content'],  # ← Still from chunker, maps to chunk_text column
+    embedding_str,
+    metadata_json
+)
+```
+
+#### 4. Fixed get_document_info query
+```python
+# BEFORE (WRONG)
+SELECT
+    d.id, d.bot_id, d.title, d.source,
+    d.created_at, d.updated_at,
+    COUNT(dc.id) as chunk_count,
+    SUM(dc.token_count) as total_tokens  # ← Column doesn't exist!
+FROM documents d
+LEFT JOIN document_chunks dc ON d.id = dc.document_id
+
+# AFTER (CORRECT)
+SELECT
+    d.id, d.bot_id, d.title, d.source,
+    d.created_at, d.updated_at,
+    COUNT(dc.id) as chunk_count
+FROM documents d
+LEFT JOIN document_chunks dc ON d.id = dc.document_id
+```
+
+#### 5. Updated all call sites
+```python
+# process_document() - line 122
+self._store_chunks(document_id, bot_id, chunks, embeddings)
+
+# reindex_document() - line 194
+self._store_chunks(document_id, bot_id, chunks, embeddings)
+```
+
+### Chunker Behavior
+
+The `TextChunker` class (shared/rag/chunker.py) returns chunk dictionaries with:
+- `content`: The chunk text (we map this to `chunk_text` column)
+- `chunk_index`: Position in sequence
+- `token_count`: Estimated token count (calculated, but NOT stored in DB)
+- `metadata`: Additional metadata dict
+
+### Testing Recommendations
+
+After deploying these fixes, verify with:
+
+```bash
+# Test document ingestion
+python scripts/add_document.py \
+  --bot_id therapist \
+  --title "Test Document" \
+  --file bots/therapist/knowledge_base/services_overview.txt \
+  --verbose
+```
+
+Expected output:
+```
+✓ Document stored successfully (id: X)
+✓ Created N chunks
+✓ Generated N embeddings
+✓ Stored N chunks in database
+✓ Document 'Test Document' added successfully!
+```
+
+Verify in database:
+```sql
+-- Check document was created
+SELECT id, bot_id, title FROM documents ORDER BY id DESC LIMIT 1;
+
+-- Check chunks were created with correct schema
+SELECT id, document_id, bot_id, chunk_index,
+       LEFT(chunk_text, 50) as preview
+FROM document_chunks
+WHERE document_id = <doc_id>
+ORDER BY chunk_index;
+```
+
+### Related Files Modified
+
+- `shared/rag/embedder.py` - Fixed all schema mismatches
+- `shared/rag/chunker.py` - No changes (already correct)
+
+### Lessons Learned
+
+1. **Always verify production schema** before writing database code
+2. **Test against actual database** early in development
+3. **Document schema** in code comments or separate schema file
+4. **Use migrations** to keep schema versioned and documented
+
+---
