@@ -1,35 +1,70 @@
-# My Bot Army - Consolidated Requirements
-# This file includes all dependencies for the complete platform
+# My Bot Army - Python Dependencies
+# Flask-based production system with RAG capabilities
 
-# Web Frameworks
-fastapi==0.104.1
-flask==3.0.0
-uvicorn[standard]==0.24.0
-flask-cors==4.0.0
+# ============================================================================
+# PRODUCTION DEPENDENCIES (Flask System)
+# ============================================================================
 
-# Database
-sqlalchemy==2.0.23
-asyncpg==0.29.0
-psycopg2-binary>=2.9.0
-pgvector==0.2.4
-alembic==1.13.0
+# Web Framework - Flask
+flask==3.0.0                      # Main web framework (synchronous)
+flask-cors==4.0.0                 # CORS support for chat widget
+gunicorn==21.2.0                  # Production WSGI server
 
-# Data Validation & Settings
-pydantic==2.5.0
-pydantic-settings==2.1.0
+# Database - PostgreSQL + pgvector
+psycopg2-binary>=2.9.0            # PostgreSQL adapter (synchronous)
+pgvector==0.2.4                   # Vector similarity search extension
 
 # External APIs
-anthropic==0.39.0
-
-# HTTP Client
-httpx==0.25.1
+anthropic==0.39.0                 # Claude AI API client
+requests==2.31.0                  # HTTP client for API calls (sync)
 
 # Utilities
-python-dotenv==1.0.0
+python-dotenv==1.0.0              # Environment variable management
 
-# Development & Testing (Optional - uncomment to install)
+# ============================================================================
+# LEGACY DEPENDENCIES (FastAPI System - my_bot_army/ directory)
+# Keep these for reference/future migration - not used in production
+# ============================================================================
+
+# FastAPI Framework (async - not currently used)
+fastapi==0.104.1                  # Modern async web framework
+uvicorn[standard]==0.24.0         # ASGI server for FastAPI
+pydantic==2.5.0                   # Data validation for FastAPI
+pydantic-settings==2.1.0          # Settings management
+
+# Async Database (not used in Flask production)
+sqlalchemy==2.0.23                # ORM (used by both sync and async)
+asyncpg==0.29.0                   # Async PostgreSQL driver (FastAPI only)
+alembic==1.13.0                   # Database migrations (optional)
+
+# Async HTTP Client (not used in Flask production)
+httpx==0.25.1                     # Async HTTP client for FastAPI
+
+# ============================================================================
+# DEVELOPMENT & TESTING (Optional - uncomment to install)
+# ============================================================================
+
 # pytest>=7.0.0
 # pytest-asyncio>=0.21.0
 # black>=23.0.0
 # flake8>=6.0.0
 # mypy>=1.0.0
+
+# ============================================================================
+# NOTES
+# ============================================================================
+#
+# Current Production: Flask system (bots/keystone-landscaping/)
+# - Uses: flask, gunicorn, psycopg2-binary, anthropic, requests
+# - Does NOT use: fastapi, uvicorn, asyncpg, httpx
+#
+# Legacy/Reference: FastAPI system (my_bot_army/app/)
+# - Not currently deployed
+# - Available for future migration if needed
+# - Uses async/await patterns
+#
+# To install only production dependencies:
+#   pip install flask flask-cors gunicorn psycopg2-binary pgvector anthropic requests python-dotenv
+#
+# To install everything (including legacy):
+#   pip install -r requirements.txt
