@@ -569,10 +569,10 @@ def log_api_usage(bot_id: str, input_tokens: int,
     """
     try:
         query = """
-            INSERT INTO api_usage (bot_id, usage_date, input_tokens, output_tokens,
+            INSERT INTO api_usage (bot_id, date, input_tokens, output_tokens,
                                   total_tokens, cost, request_count)
             VALUES (%s, CURRENT_DATE, %s, %s, %s, %s, 1)
-            ON CONFLICT (bot_id, usage_date)
+            ON CONFLICT (bot_id, date)
             DO UPDATE SET
                 input_tokens = api_usage.input_tokens + EXCLUDED.input_tokens,
                 output_tokens = api_usage.output_tokens + EXCLUDED.output_tokens,
@@ -611,8 +611,8 @@ def get_usage_by_bot(bot_id: str, start_date: date = None,
         query = """
             SELECT * FROM api_usage
             WHERE bot_id = %s
-            AND usage_date BETWEEN %s AND %s
-            ORDER BY usage_date DESC
+            AND date BETWEEN %s AND %s
+            ORDER BY date DESC
         """
         return execute_query(query, (bot_id, start_date, end_date))
     except Exception as e:
@@ -644,8 +644,8 @@ def get_usage_by_client(client_id: int, start_date: date = None,
             FROM api_usage u
             JOIN bots b ON u.bot_id = b.bot_id
             WHERE b.client_id = %s
-            AND u.usage_date BETWEEN %s AND %s
-            ORDER BY u.usage_date DESC, u.bot_id
+            AND u.date BETWEEN %s AND %s
+            ORDER BY u.date DESC, u.bot_id
         """
         return execute_query(query, (client_id, start_date, end_date))
     except Exception as e:
@@ -675,7 +675,7 @@ def get_daily_usage(usage_date: date = None) -> List[Dict[str, Any]]:
             FROM api_usage u
             JOIN bots b ON u.bot_id = b.bot_id
             JOIN clients c ON b.client_id = c.id
-            WHERE u.usage_date = %s
+            WHERE u.date = %s
             ORDER BY u.cost DESC
         """
         return execute_query(query, (usage_date,))
