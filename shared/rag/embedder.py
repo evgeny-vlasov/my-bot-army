@@ -119,7 +119,7 @@ class DocumentEmbedder:
             logger.info(f"Generated {len(embeddings)} embeddings")
 
             # Step 4: Store chunks with embeddings
-            self._store_chunks(document_id, chunks, embeddings)
+            self._store_chunks(document_id, bot_id, chunks, embeddings)
 
             logger.info(
                 f"Successfully processed document {document_id} "
@@ -191,7 +191,7 @@ class DocumentEmbedder:
             embeddings = self.voyage_client.embed_documents(chunk_texts)
 
             # Store new chunks
-            self._store_chunks(document_id, chunks, embeddings)
+            self._store_chunks(document_id, bot_id, chunks, embeddings)
 
             logger.info(
                 f"Successfully reindexed document {document_id} "
@@ -258,8 +258,7 @@ class DocumentEmbedder:
                             d.source,
                             d.created_at,
                             d.updated_at,
-                            COUNT(dc.id) as chunk_count,
-                            SUM(dc.token_count) as total_tokens
+                            COUNT(dc.id) as chunk_count
                         FROM documents d
                         LEFT JOIN document_chunks dc ON d.id = dc.document_id
                         WHERE d.id = %s
@@ -278,8 +277,7 @@ class DocumentEmbedder:
                         'source': row[3],
                         'created_at': row[4],
                         'updated_at': row[5],
-                        'chunk_count': row[6] or 0,
-                        'total_tokens': row[7] or 0
+                        'chunk_count': row[6] or 0
                     }
 
         except Exception as e:
@@ -329,6 +327,7 @@ class DocumentEmbedder:
     def _store_chunks(
         self,
         document_id: int,
+        bot_id: int,
         chunks: List[Dict],
         embeddings: List[List[float]]
     ) -> None:
@@ -337,6 +336,7 @@ class DocumentEmbedder:
 
         Args:
             document_id: Parent document ID
+            bot_id: Bot ID (required FK for document_chunks table)
             chunks: List of chunk dictionaries from chunker
             embeddings: List of embedding vectors from Voyage
         """
@@ -358,13 +358,13 @@ class DocumentEmbedder:
 
                     cur.execute("""
                         INSERT INTO document_chunks
-                            (document_id, chunk_index, content, token_count, embedding, metadata)
+                            (document_id, bot_id, chunk_index, chunk_text, embedding, metadata)
                         VALUES (%s, %s, %s, %s, %s::vector, %s)
                     """, (
                         document_id,
+                        bot_id,
                         chunk['chunk_index'],
                         chunk['content'],
-                        chunk['token_count'],
                         embedding_str,
                         metadata_json
                     ))
