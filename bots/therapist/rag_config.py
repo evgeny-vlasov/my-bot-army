@@ -15,7 +15,7 @@ TOP_K_CHUNKS = 5
 # Minimum similarity score (0-1) for chunks to be included
 # Higher = more strict matching, Lower = more results
 # Recommended range: 0.6 - 0.8
-SIMILARITY_THRESHOLD = 0.7
+SIMILARITY_THRESHOLD = 0.3
 
 # Maximum tokens to include in context sent to Claude
 # Claude Sonnet has large context window, but keeping it focused helps quality
