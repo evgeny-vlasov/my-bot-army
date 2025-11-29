@@ -6,8 +6,10 @@ A scalable multi-tenant platform for deploying AI chatbots powered by Claude, wi
 
 **Architecture:** Flask-based web framework (forked from FastAPI original)
 **Current Status:** ✅ Production-Ready
-**Active System:** Keystone Hardscapes Bot with full RAG integration
-**Last Updated:** November 25, 2025
+**Active Bots:**
+- Keystone Hardscapes (port 5001, bot_id=1)
+- Psyling Therapist (port 5002, bot_id=2)
+**Last Updated:** November 29, 2025
 
 > **Note:** This project has been migrated from FastAPI to Flask to integrate with the WebGarden Flask infrastructure while maintaining all functionality and API compatibility.
 
@@ -31,11 +33,14 @@ pip install -r requirements.txt
 cp .env.example .env
 nano .env  # Add your ANTHROPIC_API_KEY and VOYAGE_API_KEY
 
-# 4. Start the Keystone bot
+# 4. Start a bot (Keystone or Therapist)
+# Keystone Hardscapes:
 cd bots/keystone-landscaping
-python3 app.py
+python3 app.py  # Runs on http://localhost:5001
 
-# Bot runs on http://localhost:5001
+# Or Therapist:
+cd bots/therapist
+python3 app.py  # Runs on http://localhost:5002
 ```
 
 ### For LLMs Working on This Project
@@ -58,12 +63,22 @@ That document contains:
 
 A production-ready platform for deploying AI chatbots with enterprise features:
 
-**Current Bot:** Keystone Hardscapes landscaping assistant
+**Current Bots:**
+1. **Keystone Hardscapes** - Landscaping services assistant
+   - Location: `/opt/bot-farm/bots/keystone-landscaping/`
+   - Port: 5001
+   - Bot ID: 1 (keystone-landscaping)
+   - RAG Threshold: 0.7
+
+2. **Psyling Therapist** - Therapy practice assistant
+   - Location: `/opt/bot-farm/bots/therapist/`
+   - Port: 5002
+   - Bot ID: 2 (therapist)
+   - RAG Threshold: 0.3 (lower for broader context retrieval)
+
 **Framework:** Flask 3.x + Gunicorn
 **LLM:** Claude Sonnet 4.5 via Anthropic API
 **RAG:** Fully integrated with Voyage AI embeddings + pgvector
-
-**Deployment Location:** `/opt/bot-farm/bots/keystone-landscaping/`
 
 **Core Features:**
 - ✅ RAG-enhanced responses from knowledge base
@@ -137,11 +152,17 @@ A production-ready platform for deploying AI chatbots with enterprise features:
 ```
 /opt/bot-farm/
 ├── bots/                              # Flask bot instances
-│   └── keystone-landscaping/          # Production Keystone bot
+│   ├── keystone-landscaping/          # Keystone Hardscapes bot (port 5001)
+│   │   ├── app.py                     # Main Flask application
+│   │   ├── config.py                  # Configuration
+│   │   ├── prompts.py                 # System prompts
+│   │   ├── rag_config.py              # RAG settings (threshold: 0.7)
+│   │   └── knowledge_base/            # KB source files
+│   └── therapist/                     # Psyling Therapist bot (port 5002)
 │       ├── app.py                     # Main Flask application
 │       ├── config.py                  # Configuration
 │       ├── prompts.py                 # System prompts
-│       ├── rag_config.py              # RAG settings
+│       ├── rag_config.py              # RAG settings (threshold: 0.3)
 │       └── knowledge_base/            # KB source files
 │
 ├── shared/                            # Shared modules
@@ -183,18 +204,18 @@ The bot automatically retrieves relevant information from its knowledge base bef
 4. Context injected into system prompt
 5. Claude generates response with KB context
 
-**Configuration:** `bots/keystone-landscaping/rag_config.py`
+**Configuration:** Each bot has its own `rag_config.py`
 ```python
+# Example (bots/keystone-landscaping/rag_config.py)
 TOP_K_CHUNKS = 5                    # Retrieve top 5 chunks
-SIMILARITY_THRESHOLD = 0.7          # Minimum relevance (0-1)
+SIMILARITY_THRESHOLD = 0.7          # Keystone: 0.7, Therapist: 0.3
 MAX_CONTEXT_TOKENS = 2000           # Max tokens in context
-VOYAGE_MODEL = "voyage-3-lite"      # 512D embeddings
+VOYAGE_MODEL = "voyage-3-lite"      # 512D embeddings (both bots)
 ```
 
-**Current Knowledge Base:**
-- 2 documents (company info, FAQ)
-- 3 chunks with embeddings
-- Covers: services, pricing, warranties, timing
+**Knowledge Bases:**
+- **Keystone:** Services, pricing, warranties, project timelines
+- **Therapist:** Practice info, services, insurance, FAQ
 
 **Cost:** ~$0.000006-0.000012 per query (extremely affordable)
 
@@ -687,11 +708,11 @@ sudo systemctl status keystone-bot
 
 **Current Version:** 2.0 (Flask Migration)
 **Architecture:** Flask + Gunicorn (migrated from FastAPI)
-**Last Updated:** November 25, 2025
-**Active Bots:** 1 (Keystone Hardscapes)
+**Last Updated:** November 29, 2025
+**Active Bots:** 2 (Keystone Hardscapes, Psyling Therapist)
 **RAG Status:** ✅ Fully integrated and operational
+**Embedding Model:** voyage-3-lite (512D) for both bots
 **Test Coverage:** 51 RAG tests passing
-**Knowledge Base:** 2 documents, 3 chunks loaded
 
 **Recent Milestones:**
 - ✅ **Flask migration complete** (Nov 25, 2025)

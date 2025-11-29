@@ -1,6 +1,6 @@
-# RAG Integration for Keystone Hardscapes
+# RAG Integration for My Bot Army
 
-This document describes the RAG (Retrieval-Augmented Generation) integration completed for the My Bot Army platform.
+This document describes the RAG (Retrieval-Augmented Generation) integration for the My Bot Army platform, currently deployed for both Keystone Hardscapes and Psyling Therapist bots.
 
 ## Files Added
 
@@ -58,17 +58,24 @@ WHERE table_name IN ('documents', 'document_chunks');
 
 ### Step 2: Load Knowledge Base
 
+Each bot has its own knowledge base loader:
+
+**For Keystone Hardscapes:**
 ```bash
 export VOYAGE_API_KEY='your-voyage-api-key'
 python3 load_keystone_kb.py
 ```
 
+**For Therapist Bot:**
+```bash
+export VOYAGE_API_KEY='your-voyage-api-key'
+python3 load_therapist_kb.py
+```
+
 This will:
-- Load keystone_company.txt
-- Load keystone_faq.txt  
-- Load any files in knowledge_base/ directory
+- Load bot-specific documents
 - Create embeddings for all content
-- Store chunks in database
+- Store chunks in database with appropriate bot_id
 
 ### Step 3: Test RAG System
 
@@ -80,7 +87,7 @@ This runs 5 test queries and displays the retrieved context.
 
 ### Step 4: Update Bot System Prompt
 
-Modify the Keystone bot's system prompt to include RAG context retrieval.
+Each bot integrates RAG context retrieval in their Flask app:
 
 Example integration:
 ```python
@@ -91,14 +98,18 @@ from shared.database import get_db_connection
 with get_db_connection() as conn:
     context = rag_query(
         conn=conn,
-        bot_id=1,  # Keystone bot
+        bot_id=bot_numeric_id,  # 1 for Keystone, 2 for Therapist
         user_query=user_message,
         voyage_api_key=os.getenv('VOYAGE_API_KEY'),
-        top_k=3
+        top_k=5
     )
 
 # Add context to system prompt or user message
 ```
+
+**Bot-Specific Settings:**
+- **Keystone (bot_id=1):** SIMILARITY_THRESHOLD = 0.7 (standard precision)
+- **Therapist (bot_id=2):** SIMILARITY_THRESHOLD = 0.3 (broader retrieval)
 
 ## Architecture
 
@@ -129,7 +140,8 @@ The helper functions bridge the gap between the functional interface (used by te
 - Stores individual chunks with embeddings
 - Links to documents via document_id
 - Uses pgvector for similarity search
-- Embedding dimension: 512 (voyage-3-lite) or 1024 (voyage-3)
+- Embedding dimension: 512 (voyage-3-lite for both bots)
+- **Important:** Filter queries on `dc.bot_id`, not `d.bot_id` (see bugfix docs)
 
 ## Testing
 

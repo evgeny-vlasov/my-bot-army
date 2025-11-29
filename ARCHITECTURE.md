@@ -1,8 +1,9 @@
 # My Bot Army - Technical Architecture
 
 **Version:** 2.0.0 (Flask)
-**Last Updated:** November 25, 2025
+**Last Updated:** November 29, 2025
 **Status:** Production Ready
+**Active Bots:** Keystone Hardscapes (port 5001), Psyling Therapist (port 5002)
 
 This document provides detailed technical information about the My Bot Army Flask-based architecture.
 
@@ -177,11 +178,17 @@ Located in `my_bot_army/app/` directory, **not used in production**:
 my-bot-army/
 │
 ├── bots/                                # Flask bot instances (PRODUCTION)
-│   └── keystone-landscaping/
+│   ├── keystone-landscaping/            # Keystone bot (port 5001, bot_id=1)
+│   │   ├── app.py                       # Main Flask app ⭐
+│   │   ├── config.py                    # Bot configuration
+│   │   ├── prompts.py                   # System prompts
+│   │   ├── rag_config.py                # RAG settings (threshold: 0.7)
+│   │   └── knowledge_base/              # Source documents
+│   └── therapist/                       # Therapist bot (port 5002, bot_id=2)
 │       ├── app.py                       # Main Flask app ⭐
 │       ├── config.py                    # Bot configuration
 │       ├── prompts.py                   # System prompts
-│       ├── rag_config.py                # RAG settings
+│       ├── rag_config.py                # RAG settings (threshold: 0.3)
 │       └── knowledge_base/              # Source documents
 │
 ├── shared/                              # Shared modules
@@ -381,11 +388,12 @@ import os
 RAG_ENABLED = os.getenv('RAG_ENABLED', 'true').lower() == 'true'
 
 # Voyage AI Settings
-VOYAGE_MODEL = "voyage-3-lite"  # 512D embeddings
+VOYAGE_MODEL = "voyage-3-lite"  # 512D embeddings (both bots)
 VOYAGE_API_KEY = os.getenv('VOYAGE_API_KEY')
 
 # Retrieval Parameters
 TOP_K_CHUNKS = int(os.getenv('RAG_TOP_K', 5))
+# Note: Keystone uses 0.7, Therapist uses 0.3 for broader retrieval
 SIMILARITY_THRESHOLD = float(os.getenv('RAG_SIMILARITY_THRESHOLD', 0.7))
 MAX_CONTEXT_TOKENS = 2000
 
@@ -582,6 +590,9 @@ def save_message(conversation_id: int, role: str, content: str) -> int:
 def search_similar_chunks(bot_id: int, query_embedding: list, top_k: int = 5):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
+            # IMPORTANT: Filter on dc.bot_id, not d.bot_id
+            # Filtering on d.bot_id causes PostgreSQL query planner issues
+            # See bugfix documentation for details
             cur.execute("""
                 SELECT
                     dc.id as chunk_id,
