@@ -237,24 +237,39 @@ class RAGRetriever:
         Returns:
             List of result dictionaries
         """
+        # Log entry point with all parameters
+        logger.info(f"_vector_search called: bot_id='{bot_id}', top_k={top_k}, threshold={similarity_threshold}")
+
         # Convert embedding to pgvector format
         embedding_str = '[' + ','.join(str(x) for x in query_embedding) + ']'
+
+        # Log embedding details
+        logger.debug(f"Embedding: {len(query_embedding)} dims, str length: {len(embedding_str)}")
 
         # Calculate distance threshold from similarity threshold
         # cosine similarity = 1 - cosine distance
         # So: distance <= (1 - similarity)
         distance_threshold = 1 - similarity_threshold
 
+        # Log threshold calculation
+        logger.debug(f"Distance threshold: {distance_threshold}")
+
         with self.db.get_connection() as conn:
             with conn.cursor() as cur:
                 # First convert bot_id string to integer ID
+                logger.debug(f"Looking up bot_id '{bot_id}'...")
                 cur.execute("SELECT id FROM bots WHERE bot_id = %s", (bot_id,))
                 bot_row = cur.fetchone()
                 if not bot_row:
+                    logger.error(f"Bot '{bot_id}' not found in database")
                     raise ValueError(f"Bot {bot_id} not found")
                 bot_id_int = bot_row['id']  # RealDictCursor always returns dict
 
+                # Log bot ID lookup result
+                logger.info(f"Bot '{bot_id}' -> numeric ID: {bot_id_int}")
+
                 # Vector similarity query using <=> (cosine distance) operator
+                logger.debug(f"Executing vector search query...")
                 cur.execute("""
                     SELECT
                         dc.id as chunk_id,
@@ -282,6 +297,14 @@ class RAGRetriever:
 
                 rows = cur.fetchall()
 
+                # Log query results
+                logger.info(f"Vector search returned {len(rows)} rows")
+
+                if rows:
+                    logger.debug(f"Top result similarity: {rows[0].get('similarity', 0):.4f}")
+                else:
+                    logger.warning(f"No results found for bot_id={bot_id_int}, distance_threshold={distance_threshold}")
+
                 # Convert rows to dictionaries (using RealDictCursor)
                 results = []
                 for row in rows:
@@ -301,7 +324,12 @@ class RAGRetriever:
                     }
                     results.append(result)
 
-        logger.debug(f"Vector search returned {len(results)} results")
+        # Log final results before returning
+        logger.info(f"Returning {len(results)} results to caller")
+
+        if results:
+            similarities = [f"{r['similarity']:.4f}" for r in results[:3]]
+            logger.debug(f"Result similarities: {similarities}")
 
         return results
 
