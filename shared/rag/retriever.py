@@ -281,7 +281,7 @@ class RAGRetriever:
                         1 - (dc.embedding <=> %s::vector) as similarity
                     FROM document_chunks dc
                     JOIN documents d ON dc.document_id = d.id
-                    WHERE d.bot_id = %s
+                    WHERE dc.bot_id = %s
                       AND dc.embedding IS NOT NULL
                       AND (dc.embedding <=> %s::vector) <= %s
                     ORDER BY dc.embedding <=> %s::vector
