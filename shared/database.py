@@ -15,6 +15,7 @@ Usage:
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from pgvector.psycopg2 import register_vector
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
@@ -53,6 +54,7 @@ def get_db_connection():
     conn = None
     try:
         conn = psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
+        register_vector(conn)
         yield conn
         conn.commit()
     except Exception as e:
