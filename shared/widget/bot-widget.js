@@ -1,585 +1,562 @@
-/**
- * Bot Widget - Embeddable Chat Widget
- *
- * A customizable chat widget that can be embedded on any website
- * to provide AI-powered customer support.
- */
-
 (function() {
-    'use strict';
+  'use strict';
 
-    console.log('[BotWidget] IIFE started');
+  // ============================================================================
+  // CONFIGURATION
+  // ============================================================================
 
-    // Widget configuration and state
-    let config = {};
-    let conversationHistory = [];
-    let isOpen = false;
-    let isLoading = false;
-    let sessionId = null;
+  const scriptTag = document.currentScript || document.querySelector('script[data-bot-id]');
+  if (!scriptTag) {
+    console.warn('Bot widget: script tag not found');
+    return;
+  }
 
-    // DOM elements
-    let chatBubble, chatWindow, messageList, messageInput, sendButton;
+  const config = {
+    botId: scriptTag.getAttribute('data-bot-id'),
+    botName: scriptTag.getAttribute('data-bot-name') || 'Assistant',
+    position: scriptTag.getAttribute('data-position') || 'bottom-right',
+    theme: scriptTag.getAttribute('data-theme') || 'light',
+    apiUrl: scriptTag.getAttribute('data-api-url') || ''
+  };
 
-    console.log('[BotWidget] About to define window.BotWidget');
+  if (!config.botId) {
+    console.warn('Bot widget: data-bot-id is required');
+    return;
+  }
 
-    /**
-     * Initialize the widget with configuration
-     */
-    window.BotWidget = {
-        init: function(options) {
-            // Validate required options
-            if (!options.apiUrl) {
-                console.error('BotWidget: apiUrl is required');
-                return;
-            }
-            if (!options.botId) {
-                console.error('BotWidget: botId is required');
-                return;
-            }
+  // ============================================================================
+  // UTILITIES
+  // ============================================================================
 
-            // Set configuration with defaults
-            config = {
-                apiUrl: options.apiUrl,
-                botId: options.botId,
-                position: options.position || 'bottom-right',
-                primaryColor: options.primaryColor || '#2563eb',
-                title: options.title || 'Chat with us'
-            };
+  function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+  }
 
-            // Generate or retrieve session ID
-            sessionId = sessionStorage.getItem('bot_session_id');
-            if (!sessionId) {
-                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                sessionStorage.setItem('bot_session_id', sessionId);
-            }
+  function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
 
-            // Load conversation history from sessionStorage
-            loadConversationHistory();
+  function getSessionId() {
+    const storageKey = `bot_session_${config.botId}`;
+    let sessionId = localStorage.getItem(storageKey);
+    if (!sessionId) {
+      sessionId = generateUUID();
+      localStorage.setItem(storageKey, sessionId);
+    }
+    return sessionId;
+  }
 
-            // Inject styles
-            injectStyles();
+  // ============================================================================
+  // CSS INJECTION
+  // ============================================================================
 
-            // Create widget elements
-            createChatBubble();
-            createChatWindow();
+  function injectStyles() {
+    const isMobile = window.innerWidth < 480;
+    const bubbleSize = isMobile ? '50px' : 'var(--bot-bubble-size, 60px)';
 
-            // Restore conversation if exists
-            if (conversationHistory.length > 0) {
-                conversationHistory.forEach(msg => {
-                    appendMessage(msg.role, msg.content, false);
-                });
-            }
+    const css = `
+      :root {
+        --bot-primary-color: #0066cc;
+        --bot-text-color: #333;
+        --bot-bg-color: #fff;
+        --bot-bubble-size: 60px;
+      }
+
+      .bot-widget-container {
+        position: fixed;
+        ${config.position.includes('right') ? 'right: 20px;' : 'left: 20px;'}
+        bottom: 20px;
+        z-index: 999999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      }
+
+      .bot-widget-bubble {
+        width: ${bubbleSize};
+        height: ${bubbleSize};
+        border-radius: 50%;
+        background: var(--bot-primary-color);
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .bot-widget-bubble:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+      }
+
+      .bot-widget-bubble svg {
+        width: 60%;
+        height: 60%;
+        fill: white;
+      }
+
+      .bot-widget-window {
+        display: none;
+        flex-direction: column;
+        position: fixed;
+        ${config.position.includes('right') ? 'right: 20px;' : 'left: 20px;'}
+        bottom: 20px;
+        width: ${isMobile ? '100%' : '380px'};
+        height: ${isMobile ? '70vh' : '600px'};
+        max-height: 90vh;
+        ${isMobile ? 'left: 0; right: 0; margin: 0 auto;' : ''}
+        background: var(--bot-bg-color);
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        overflow: hidden;
+      }
+
+      .bot-widget-window.open {
+        display: flex;
+      }
+
+      .bot-widget-header {
+        background: var(--bot-primary-color);
+        color: white;
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .bot-widget-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .bot-widget-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+      }
+
+      .bot-widget-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: ${config.theme === 'dark' ? '#1a1a1a' : '#f5f5f5'};
+      }
+
+      .bot-message, .user-message {
+        margin-bottom: 12px;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .user-message {
+        justify-content: flex-end;
+      }
+
+      .message-bubble {
+        padding: 10px 14px;
+        border-radius: 18px;
+        max-width: 75%;
+        word-wrap: break-word;
+        line-height: 1.4;
+      }
+
+      .bot-message .message-bubble {
+        background: white;
+        color: var(--bot-text-color);
+        border-bottom-left-radius: 4px;
+      }
+
+      .user-message .message-bubble {
+        background: var(--bot-primary-color);
+        color: white;
+        border-bottom-right-radius: 4px;
+      }
+
+      .bot-widget-typing {
+        display: none;
+        padding: 10px 14px;
+        background: white;
+        border-radius: 18px;
+        width: 60px;
+        margin-bottom: 12px;
+      }
+
+      .bot-widget-typing.active {
+        display: block;
+      }
+
+      .typing-dots {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+
+      .typing-dots span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #999;
+        animation: typing 1.4s infinite;
+      }
+
+      .typing-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+
+      .typing-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes typing {
+        0%, 60%, 100% { opacity: 0.3; }
+        30% { opacity: 1; }
+      }
+
+      .bot-widget-input-area {
+        padding: 16px;
+        background: var(--bot-bg-color);
+        border-top: 1px solid ${config.theme === 'dark' ? '#333' : '#e0e0e0'};
+        display: flex;
+        gap: 8px;
+      }
+
+      .bot-widget-input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid ${config.theme === 'dark' ? '#444' : '#ddd'};
+        border-radius: 20px;
+        font-size: 14px;
+        outline: none;
+        background: ${config.theme === 'dark' ? '#2a2a2a' : 'white'};
+        color: ${config.theme === 'dark' ? 'white' : 'var(--bot-text-color)'};
+      }
+
+      .bot-widget-input:focus {
+        border-color: var(--bot-primary-color);
+      }
+
+      .bot-widget-send {
+        background: var(--bot-primary-color);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.2s;
+      }
+
+      .bot-widget-send:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      .bot-widget-send:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .bot-widget-send svg {
+        width: 20px;
+        height: 20px;
+        fill: white;
+      }
+
+      .bot-widget-error {
+        background: #fee;
+        color: #c33;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        margin-bottom: 12px;
+      }
+
+      @media (max-width: 480px) {
+        .bot-widget-container {
+          right: 10px;
+          bottom: 10px;
         }
-    };
 
-    /**
-     * Load conversation history from sessionStorage
-     */
-    function loadConversationHistory() {
-        try {
-            const stored = sessionStorage.getItem(`botWidget_${config.botId}_history`);
-            if (stored) {
-                conversationHistory = JSON.parse(stored);
-            }
-        } catch (e) {
-            console.warn('BotWidget: Could not load conversation history', e);
+        .bot-widget-window {
+          width: calc(100% - 20px) !important;
+          right: 10px !important;
+          left: 10px !important;
         }
-    }
+      }
+    `;
 
-    /**
-     * Save conversation history to sessionStorage
-     */
-    function saveConversationHistory() {
-        try {
-            sessionStorage.setItem(
-                `botWidget_${config.botId}_history`,
-                JSON.stringify(conversationHistory)
-            );
-        } catch (e) {
-            console.warn('BotWidget: Could not save conversation history', e);
-        }
-    }
+    const styleElement = document.createElement('style');
+    styleElement.textContent = css;
+    document.head.appendChild(styleElement);
+  }
 
-    /**
-     * Inject CSS styles into the document
-     */
-    function injectStyles() {
-        const styles = `
-            .bot-widget-bubble {
-                position: fixed;
-                ${config.position.includes('right') ? 'right: 20px;' : 'left: 20px;'}
-                bottom: 20px;
-                width: 60px;
-                height: 60px;
-                background-color: ${config.primaryColor};
-                border-radius: 50%;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 999999;
-                transition: transform 0.2s, box-shadow 0.2s;
-            }
+  // ============================================================================
+  // HTML TEMPLATE
+  // ============================================================================
 
-            .bot-widget-bubble:hover {
-                transform: scale(1.1);
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-            }
+  function createWidgetHTML() {
+    const container = document.createElement('div');
+    container.className = 'bot-widget-container';
+    container.innerHTML = `
+      <div class="bot-widget-bubble" id="bot-widget-bubble">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+        </svg>
+      </div>
 
-            .bot-widget-bubble svg {
-                width: 28px;
-                height: 28px;
-                fill: white;
-            }
+      <div class="bot-widget-window" id="bot-widget-window">
+        <div class="bot-widget-header">
+          <h3>${escapeHTML(config.botName)}</h3>
+          <button class="bot-widget-close" id="bot-widget-close" aria-label="Close chat">×</button>
+        </div>
 
-            .bot-widget-window {
-                position: fixed;
-                ${config.position.includes('right') ? 'right: 20px;' : 'left: 20px;'}
-                bottom: 90px;
-                width: 380px;
-                height: 550px;
-                max-height: calc(100vh - 120px);
-                background: white;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-                z-index: 999999;
-                display: none;
-                flex-direction: column;
-                overflow: hidden;
-                animation: slideUp 0.3s ease-out;
-            }
-
-            .bot-widget-window.open {
-                display: flex;
-            }
-
-            @keyframes slideUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            .bot-widget-header {
-                background-color: ${config.primaryColor};
-                color: white;
-                padding: 16px;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .bot-widget-header h3 {
-                margin: 0;
-                font-size: 16px;
-                font-weight: 600;
-            }
-
-            .bot-widget-close {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 24px;
-                cursor: pointer;
-                padding: 0;
-                width: 24px;
-                height: 24px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                opacity: 0.8;
-                transition: opacity 0.2s;
-            }
-
-            .bot-widget-close:hover {
-                opacity: 1;
-            }
-
-            .bot-widget-messages {
-                flex: 1;
-                overflow-y: auto;
-                padding: 16px;
-                background: #f9fafb;
-            }
-
-            .bot-widget-message {
-                margin-bottom: 12px;
-                display: flex;
-                flex-direction: column;
-            }
-
-            .bot-widget-message.user {
-                align-items: flex-end;
-            }
-
-            .bot-widget-message.assistant {
-                align-items: flex-start;
-            }
-
-            .bot-widget-message-content {
-                max-width: 80%;
-                padding: 10px 14px;
-                border-radius: 12px;
-                font-size: 14px;
-                line-height: 1.5;
-                word-wrap: break-word;
-            }
-
-            .bot-widget-message.user .bot-widget-message-content {
-                background-color: ${config.primaryColor};
-                color: white;
-            }
-
-            .bot-widget-message.assistant .bot-widget-message-content {
-                background-color: white;
-                color: #1f2937;
-                border: 1px solid #e5e7eb;
-            }
-
-            .bot-widget-loading {
-                display: flex;
-                align-items: flex-start;
-                margin-bottom: 12px;
-            }
-
-            .bot-widget-loading-content {
-                background-color: white;
-                border: 1px solid #e5e7eb;
-                padding: 10px 14px;
-                border-radius: 12px;
-                display: flex;
-                gap: 4px;
-            }
-
-            .bot-widget-loading-dot {
-                width: 8px;
-                height: 8px;
-                background-color: #9ca3af;
-                border-radius: 50%;
-                animation: bounce 1.4s infinite ease-in-out both;
-            }
-
-            .bot-widget-loading-dot:nth-child(1) {
-                animation-delay: -0.32s;
-            }
-
-            .bot-widget-loading-dot:nth-child(2) {
-                animation-delay: -0.16s;
-            }
-
-            @keyframes bounce {
-                0%, 80%, 100% {
-                    transform: scale(0);
-                }
-                40% {
-                    transform: scale(1);
-                }
-            }
-
-            .bot-widget-input-area {
-                padding: 16px;
-                background: white;
-                border-top: 1px solid #e5e7eb;
-                display: flex;
-                gap: 8px;
-            }
-
-            .bot-widget-input {
-                flex: 1;
-                padding: 10px 14px;
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                font-size: 14px;
-                font-family: inherit;
-                outline: none;
-                transition: border-color 0.2s;
-            }
-
-            .bot-widget-input:focus {
-                border-color: ${config.primaryColor};
-            }
-
-            .bot-widget-send {
-                padding: 10px 16px;
-                background-color: ${config.primaryColor};
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: opacity 0.2s;
-            }
-
-            .bot-widget-send:hover:not(:disabled) {
-                opacity: 0.9;
-            }
-
-            .bot-widget-send:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
-
-            .bot-widget-error {
-                background-color: #fef2f2;
-                border: 1px solid #fecaca;
-                color: #991b1b;
-                padding: 10px 14px;
-                border-radius: 12px;
-                font-size: 14px;
-                margin-bottom: 12px;
-            }
-
-            /* Mobile responsive */
-            @media (max-width: 480px) {
-                .bot-widget-window {
-                    width: calc(100vw - 40px);
-                    height: calc(100vh - 120px);
-                    right: 20px;
-                    left: 20px;
-                    bottom: 90px;
-                }
-            }
-        `;
-
-        const styleElement = document.createElement('style');
-        styleElement.textContent = styles;
-        document.head.appendChild(styleElement);
-    }
-
-    /**
-     * Create the chat bubble button
-     */
-    function createChatBubble() {
-        chatBubble = document.createElement('div');
-        chatBubble.className = 'bot-widget-bubble';
-        chatBubble.innerHTML = `
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-            </svg>
-        `;
-        chatBubble.onclick = toggleChat;
-        document.body.appendChild(chatBubble);
-    }
-
-    /**
-     * Create the chat window
-     */
-    function createChatWindow() {
-        chatWindow = document.createElement('div');
-        chatWindow.className = 'bot-widget-window';
-
-        // Header
-        const header = document.createElement('div');
-        header.className = 'bot-widget-header';
-        header.innerHTML = `
-            <h3>${config.title}</h3>
-            <button class="bot-widget-close">&times;</button>
-        `;
-
-        // Messages container
-        messageList = document.createElement('div');
-        messageList.className = 'bot-widget-messages';
-
-        // Input area
-        const inputArea = document.createElement('div');
-        inputArea.className = 'bot-widget-input-area';
-
-        messageInput = document.createElement('input');
-        messageInput.type = 'text';
-        messageInput.className = 'bot-widget-input';
-        messageInput.placeholder = 'Type your message...';
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !isLoading) {
-                sendMessage();
-            }
-        });
-
-        sendButton = document.createElement('button');
-        sendButton.className = 'bot-widget-send';
-        sendButton.textContent = 'Send';
-        sendButton.onclick = sendMessage;
-
-        inputArea.appendChild(messageInput);
-        inputArea.appendChild(sendButton);
-
-        // Assemble window
-        chatWindow.appendChild(header);
-        chatWindow.appendChild(messageList);
-        chatWindow.appendChild(inputArea);
-
-        // Close button handler
-        header.querySelector('.bot-widget-close').onclick = toggleChat;
-
-        document.body.appendChild(chatWindow);
-    }
-
-    /**
-     * Toggle chat window open/closed
-     */
-    function toggleChat() {
-        isOpen = !isOpen;
-        if (isOpen) {
-            chatWindow.classList.add('open');
-            messageInput.focus();
-            scrollToBottom();
-        } else {
-            chatWindow.classList.remove('open');
-        }
-    }
-
-    /**
-     * Send a message to the bot
-     */
-    function sendMessage() {
-        const message = messageInput.value.trim();
-        if (!message || isLoading) return;
-
-        // Clear input
-        messageInput.value = '';
-
-        // Add user message to UI
-        appendMessage('user', message, true);
-
-        // Add to conversation history
-        conversationHistory.push({
-            role: 'user',
-            content: message
-        });
-        saveConversationHistory();
-
-        // Show loading indicator
-        showLoading();
-
-        // Send to API
-        fetch(`${config.apiUrl}/api/chat`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                message: message,
-                conversation_history: conversationHistory.slice(0, -1), // Don't include the message we just added
-                session_id: sessionId  // Send session ID for database logging
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            hideLoading();
-
-            if (data.status === 'success' && data.response) {
-                // Add bot response to UI
-                appendMessage('assistant', data.response, true);
-
-                // Add to conversation history
-                conversationHistory.push({
-                    role: 'assistant',
-                    content: data.response
-                });
-                saveConversationHistory();
-            } else {
-                showError('Unexpected response format');
-            }
-        })
-        .catch(error => {
-            hideLoading();
-            console.error('BotWidget: API error', error);
-            showError('Sorry, I encountered an error. Please try again.');
-        });
-    }
-
-    /**
-     * Append a message to the chat
-     */
-    function appendMessage(role, content, shouldScroll) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `bot-widget-message ${role}`;
-
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'bot-widget-message-content';
-        contentDiv.textContent = content;
-
-        messageDiv.appendChild(contentDiv);
-        messageList.appendChild(messageDiv);
-
-        if (shouldScroll) {
-            scrollToBottom();
-        }
-    }
-
-    /**
-     * Show loading indicator
-     */
-    function showLoading() {
-        isLoading = true;
-        sendButton.disabled = true;
-        messageInput.disabled = true;
-
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'bot-widget-loading';
-        loadingDiv.id = 'bot-widget-loading-indicator';
-        loadingDiv.innerHTML = `
-            <div class="bot-widget-loading-content">
-                <div class="bot-widget-loading-dot"></div>
-                <div class="bot-widget-loading-dot"></div>
-                <div class="bot-widget-loading-dot"></div>
+        <div class="bot-widget-messages" id="bot-widget-messages">
+          <div class="bot-message">
+            <div class="message-bubble">
+              Hello! How can I help you today?
             </div>
-        `;
+          </div>
+          <div class="bot-widget-typing" id="bot-widget-typing">
+            <div class="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
 
-        messageList.appendChild(loadingDiv);
-        scrollToBottom();
+        <div class="bot-widget-input-area">
+          <input
+            type="text"
+            class="bot-widget-input"
+            id="bot-widget-input"
+            placeholder="Type a message..."
+            aria-label="Message input"
+          />
+          <button class="bot-widget-send" id="bot-widget-send" aria-label="Send message">
+            <svg viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    return container;
+  }
+
+  // ============================================================================
+  // API COMMUNICATION
+  // ============================================================================
+
+  async function sendMessage(message, sessionId) {
+    const apiUrl = config.apiUrl || window.location.origin;
+    const endpoint = `${apiUrl}/api/chat`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: message,
+          session_id: sessionId,
+          bot_id: config.botId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.status === 'success' || data.response) {
+        return { success: true, response: data.response };
+      } else {
+        throw new Error('Invalid API response format');
+      }
+    } catch (error) {
+      console.warn('Bot widget API error:', error);
+      return {
+        success: false,
+        error: 'Sorry, I\'m having trouble connecting. Please try again later.'
+      };
+    }
+  }
+
+  // ============================================================================
+  // MESSAGE HANDLING
+  // ============================================================================
+
+  function addMessage(text, isUser) {
+    const messagesContainer = document.getElementById('bot-widget-messages');
+    const typingIndicator = document.getElementById('bot-widget-typing');
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = isUser ? 'user-message' : 'bot-message';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.innerHTML = escapeHTML(text);
+
+    messageDiv.appendChild(bubble);
+    messagesContainer.insertBefore(messageDiv, typingIndicator);
+
+    // Auto-scroll to latest message
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  function showTyping(show) {
+    const typingIndicator = document.getElementById('bot-widget-typing');
+    if (show) {
+      typingIndicator.classList.add('active');
+    } else {
+      typingIndicator.classList.remove('active');
     }
 
-    /**
-     * Hide loading indicator
-     */
-    function hideLoading() {
-        isLoading = false;
-        sendButton.disabled = false;
-        messageInput.disabled = false;
+    // Auto-scroll when showing typing indicator
+    if (show) {
+      const messagesContainer = document.getElementById('bot-widget-messages');
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }
 
-        const loadingDiv = document.getElementById('bot-widget-loading-indicator');
-        if (loadingDiv) {
-            loadingDiv.remove();
-        }
+  function showError(message) {
+    const messagesContainer = document.getElementById('bot-widget-messages');
+    const typingIndicator = document.getElementById('bot-widget-typing');
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'bot-widget-error';
+    errorDiv.textContent = message;
+
+    messagesContainer.insertBefore(errorDiv, typingIndicator);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    // Remove error after 5 seconds
+    setTimeout(() => {
+      errorDiv.remove();
+    }, 5000);
+  }
+
+  // ============================================================================
+  // EVENT HANDLERS
+  // ============================================================================
+
+  function setupEventHandlers() {
+    const bubble = document.getElementById('bot-widget-bubble');
+    const window = document.getElementById('bot-widget-window');
+    const closeBtn = document.getElementById('bot-widget-close');
+    const input = document.getElementById('bot-widget-input');
+    const sendBtn = document.getElementById('bot-widget-send');
+
+    // Toggle chat window
+    bubble.addEventListener('click', () => {
+      window.classList.add('open');
+      bubble.style.display = 'none';
+      input.focus();
+    });
+
+    closeBtn.addEventListener('click', () => {
+      window.classList.remove('open');
+      bubble.style.display = 'flex';
+    });
+
+    // Send message function
+    async function handleSendMessage() {
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Disable input while processing
+      input.disabled = true;
+      sendBtn.disabled = true;
+
+      // Add user message
+      addMessage(message, true);
+      input.value = '';
+
+      // Show typing indicator
+      showTyping(true);
+
+      // Send to API
+      const sessionId = getSessionId();
+      const result = await sendMessage(message, sessionId);
+
+      // Hide typing indicator
+      showTyping(false);
+
+      // Handle response
+      if (result.success) {
+        addMessage(result.response, false);
+      } else {
+        showError(result.error);
+      }
+
+      // Re-enable input
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
     }
 
-    /**
-     * Show error message
-     */
-    function showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'bot-widget-error';
-        errorDiv.textContent = message;
+    // Send on button click
+    sendBtn.addEventListener('click', handleSendMessage);
 
-        messageList.appendChild(errorDiv);
-        scrollToBottom();
+    // Send on Enter key
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        handleSendMessage();
+      }
+    });
+  }
 
-        // Remove error after 5 seconds
-        setTimeout(() => {
-            errorDiv.remove();
-        }, 5000);
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
+
+  function initialize() {
+    try {
+      // Inject styles
+      injectStyles();
+
+      // Create and append widget
+      const widget = createWidgetHTML();
+      document.body.appendChild(widget);
+
+      // Setup event handlers
+      setupEventHandlers();
+
+      console.log('Bot widget initialized successfully');
+    } catch (error) {
+      console.warn('Bot widget initialization failed:', error);
     }
+  }
 
-    /**
-     * Scroll to the bottom of the message list
-     */
-    function scrollToBottom() {
-        setTimeout(() => {
-            messageList.scrollTop = messageList.scrollHeight;
-        }, 100);
-    }
-
-    console.log('[BotWidget] IIFE completed, window.BotWidget defined');
+  // Wait for DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
 
 })();

@@ -1,7 +1,29 @@
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
+from pathlib import Path
 
 router = APIRouter()
+
+# Path to the widget JavaScript file
+WIDGET_JS_PATH = Path(__file__).parent.parent.parent.parent.parent / "shared" / "widget" / "bot-widget.js"
+
+
+@router.get("/widget.js")
+async def get_widget_js():
+    """
+    Serve the embeddable chat widget JavaScript file.
+
+    This file can be embedded on any website using:
+    <script src="https://botfarm.qzz.io/widget.js" data-bot-id="therapist" async></script>
+    """
+    return FileResponse(
+        path=WIDGET_JS_PATH,
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "public, max-age=3600",  # Cache for 1 hour
+            "Access-Control-Allow-Origin": "*"  # Allow cross-origin requests
+        }
+    )
 
 
 @router.get("/chat-widget/{bot_id}", response_class=HTMLResponse)

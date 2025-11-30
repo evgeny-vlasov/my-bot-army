@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bot Widget Test Page</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+    h1 {
+      color: #0066cc;
+      border-bottom: 2px solid #0066cc;
+      padding-bottom: 10px;
+    }
+    .info-box {
+      background: #f5f5f5;
+      border-left: 4px solid #0066cc;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .info-box h3 {
+      margin-top: 0;
+    }
+    code {
+      background: #e8e8e8;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    ul {
+      margin-left: 20px;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .feature-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .feature-card h4 {
+      margin-top: 0;
+      color: #0066cc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bot Widget Test Page</h1>
+
+  <div class="info-box">
+    <h3>Test Status</h3>
+    <p>The chat widget should appear in the bottom-right corner of this page. Click the blue bubble to open the chat window.</p>
+  </div>
+
+  <h2>Widget Features</h2>
+  <div class="features">
+    <div class="feature-card">
+      <h4>Floating Bubble</h4>
+      <p>Blue circular chat button fixed to the bottom-right corner</p>
+    </div>
+    <div class="feature-card">
+      <h4>Chat Window</h4>
+      <p>Expandable interface with message history and input field</p>
+    </div>
+    <div class="feature-card">
+      <h4>Typing Indicator</h4>
+      <p>Animated dots showing when the bot is processing</p>
+    </div>
+    <div class="feature-card">
+      <h4>Session Persistence</h4>
+      <p>Conversation ID stored in localStorage for continuity</p>
+    </div>
+  </div>
+
+  <h2>Embed Code</h2>
+  <div class="info-box">
+    <p>To embed this widget on your website, add this script tag:</p>
+    <pre><code>&lt;script src="https://botfarm.qzz.io/widget.js" data-bot-id="therapist" async&gt;&lt;/script&gt;</code></pre>
+  </div>
+
+  <h2>Configuration Options</h2>
+  <ul>
+    <li><code>data-bot-id</code> (required) - Bot identifier (e.g., "therapist")</li>
+    <li><code>data-bot-name</code> (optional) - Display name in header (default: "Assistant")</li>
+    <li><code>data-position</code> (optional) - "bottom-right" or "bottom-left" (default: "bottom-right")</li>
+    <li><code>data-theme</code> (optional) - "light" or "dark" (default: "light")</li>
+    <li><code>data-api-url</code> (optional) - Override API base URL (default: same origin)</li>
+  </ul>
+
+  <h2>Test Instructions</h2>
+  <ol>
+    <li>Look for the blue chat bubble in the bottom-right corner</li>
+    <li>Click the bubble to open the chat window</li>
+    <li>Type a message and press Enter or click Send</li>
+    <li>Verify the typing indicator appears while waiting</li>
+    <li>Check that the bot response appears correctly</li>
+    <li>Test the close button (×) to minimize the chat</li>
+    <li>Reopen and verify session persistence</li>
+  </ol>
+
+  <h2>Mobile Testing</h2>
+  <ul>
+    <li>Resize browser to &lt; 480px width or use device emulation</li>
+    <li>Verify chat window becomes full-width</li>
+    <li>Check bubble size reduces to 50px</li>
+    <li>Confirm tap targets are at least 44px</li>
+  </ul>
+
+  <div class="info-box">
+    <h3>Security Features</h3>
+    <ul>
+      <li>HTML escaping prevents XSS attacks</li>
+      <li>No external dependencies (zero supply chain risk)</li>
+      <li>Session IDs stored in localStorage (no sensitive data)</li>
+      <li>Graceful API error handling</li>
+    </ul>
+  </div>
+
+  <!-- Load the bot widget -->
+  <script src="bot-widget.js" data-bot-id="therapist" data-bot-name="Psyling Assistant"></script>
+</body>
+</html>
