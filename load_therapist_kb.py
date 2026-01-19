@@ -33,7 +33,7 @@ VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY")
 
 # Initialize RAG components
 voyage_client = VoyageClient(api_key=VOYAGE_API_KEY, model="voyage-3-lite")
-chunker = TextChunker(chunk_size=800, chunk_overlap=200)
+chunker = TextChunker(chunk_size=300, chunk_overlap=50)
 
 # Knowledge base files
 KB_DIR = Path("/opt/bot-farm/bots/therapist/knowledge_base")
@@ -51,6 +51,11 @@ KB_FILES = [
     {
         "path": KB_DIR / "getting_started.txt",
         "title": "Getting Started with Psychotherapy",
+        "source": "knowledge_base"
+    },
+    {
+        "path": KB_DIR / "faq.txt",
+        "title": "Frequently Asked Questions",
         "source": "knowledge_base"
     },
 ]

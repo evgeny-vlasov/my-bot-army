@@ -28,11 +28,11 @@ MAX_CONTEXT_TOKENS = 2000
 # Target size for each chunk in tokens
 # Larger chunks = more context per chunk but fewer total chunks
 # Smaller chunks = more granular retrieval but may lose context
-CHUNK_SIZE = 800
+CHUNK_SIZE = 300
 
 # Number of tokens to overlap between consecutive chunks
 # Prevents information loss at chunk boundaries
-CHUNK_OVERLAP = 150
+CHUNK_OVERLAP = 50
 
 # Minimum chunk size - chunks smaller than this are discarded
 MIN_CHUNK_SIZE = 100
